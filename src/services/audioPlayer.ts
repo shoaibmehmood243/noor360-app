@@ -1,5 +1,6 @@
 import { createAudioPlayer, AudioPlayer as ExpoPlayer } from 'expo-audio';
 import { getQuranAudioUrl } from '../api/client';
+import { getOfflineVerseUri } from './quranOfflineManager';
 
 export interface PlaybackState {
   isPlaying: boolean;
@@ -134,11 +135,12 @@ class AudioPlayerService {
       this.currentVerse = verse;
       this.currentReciter = activeReciter;
 
-      // Fetch dynamic URL from the backend
-      const audioUrl = await getQuranAudioUrl(surah, verse, activeReciter);
+      // Check if we have an offline copy downloaded
+      const offlineUri = await getOfflineVerseUri(surah, verse, activeReciter);
+      const audioSource = offlineUri || (await getQuranAudioUrl(surah, verse, activeReciter));
 
       // Create new Expo Audio Player
-      const playerInstance = createAudioPlayer(audioUrl);
+      const playerInstance = createAudioPlayer(audioSource);
       playerInstance.loop = this.isLoopingState;
 
       this.player = playerInstance;

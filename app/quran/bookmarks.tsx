@@ -12,6 +12,7 @@ import Card from '../../components/ui/Card';
 import GoldBadge from '../../components/ui/GoldBadge';
 import ArabicText from '../../components/ui/ArabicText';
 import EmptyState from '../../components/ui/EmptyState';
+import { useThemeContext } from '../../src/context/ThemeContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -28,6 +29,7 @@ interface UserNote {
 
 export default function BookmarksNotesScreen() {
   const router = useRouter();
+  const { theme } = useThemeContext();
   const params = useLocalSearchParams<{ addNoteRef?: string; arabicText?: string; reference?: string }>();
   const quran = useQuran();
 
@@ -57,7 +59,7 @@ export default function BookmarksNotesScreen() {
     if (params.addNoteRef && params.arabicText && params.reference) {
       setActiveTab('Notes');
       const noteRef = params.addNoteRef;
-      
+
       const prepareNoteLink = async () => {
         // Read active note list
         let currentNotes: UserNote[] = [];
@@ -261,7 +263,16 @@ export default function BookmarksNotesScreen() {
     <SafeAreaView style={styles.container} edges={['left', 'right', 'top']}>
       {/* Dynamic Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity
+          onPress={() => {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace('/(tabs)/quran');
+            }
+          }}
+          style={styles.backButton}
+        >
           <Ionicons name="arrow-back" size={24} color={COLORS.gold} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Study Companion</Text>
@@ -701,7 +712,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   arabicSnippet: {
-    color: '#FFFFFF',
+    color: COLORS.gold2,
     lineHeight: 34,
     textAlign: 'right',
     marginBottom: 8,
@@ -723,7 +734,7 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   deleteSwipeBtnText: {
-    color: '#FFFFFF',
+    color: '#fff',
     fontSize: 11,
     fontWeight: 'bold',
     marginTop: 4,
@@ -798,7 +809,7 @@ const styles = StyleSheet.create({
   },
   modalWorkspace: {
     flex: 1,
-    backgroundColor: '#0A0E1A',
+    backgroundColor: COLORS.bg,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -842,7 +853,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   modalArabicText: {
-    color: '#FFFFFF',
+    color: COLORS.gold2,
     lineHeight: 44,
     textAlign: 'center',
   },
@@ -859,7 +870,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.bg3,
     padding: 16,
-    color: '#FFFFFF',
+    color: COLORS.text,
     fontSize: 14,
     minHeight: 180,
     lineHeight: 20,

@@ -156,7 +156,7 @@ export default function AudioPlayerBar() {
             <Ionicons
               name="play-forward-circle"
               size={18}
-              color={playback.isAutoAdvance ? COLORS.teal : COLORS.text3}
+              color={playback.isAutoAdvance ? COLORS.gold : COLORS.text3}
             />
           </TouchableOpacity>
 
@@ -334,7 +334,7 @@ const styles = StyleSheet.create({
   },
   waveBar: {
     width: 2.5,
-    backgroundColor: COLORS.teal,
+    backgroundColor: COLORS.gold,
     marginHorizontal: 1,
     borderRadius: 1,
   },

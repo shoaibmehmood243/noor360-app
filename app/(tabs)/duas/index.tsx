@@ -17,22 +17,22 @@ import { useDuasStore } from '../../../src/store/duasStore';
 import { COLORS } from '../../../constants/theme';
 import Card from '../../../components/ui/Card';
 import ArabicGeometricBg from '../../../components/ui/ArabicGeometricBg';
-import { Dua } from '../../../src/api/client';
+import { Dua, getDuasByCategory } from '../../../src/api/client';
 import AppHeader from '../../../components/AppHeader';
 import TasbeehIcon from '../../../components/icons/TasbeehIcon';
 import NamesIcon from '../../../components/icons/NamesIcon';
 
-const CATEGORY_EMOJIS: Record<string, string> = {
-  'morning-adhkar': '🌅',
-  'evening-adhkar': '🌌',
-  'food-eating': '🍲',
-  'before-sleep': '🌙',
-  'upon-waking': '☀️',
-  'travel': '🚗',
-  'protection': '🛡️',
-  'entering-home': '🏡',
-  'stress-anxiety': '🌀',
-  'gratitude': '💖',
+const CATEGORY_ICONS: Record<string, { icon: keyof typeof Ionicons.glyphMap; color: string; bg: string }> = {
+  'morning-adhkar': { icon: 'sunny-outline', color: '#F59E0B', bg: 'rgba(245,158,11,0.08)' },
+  'evening-adhkar': { icon: 'moon-outline', color: '#818CF8', bg: 'rgba(129,140,248,0.08)' },
+  'food-eating': { icon: 'restaurant-outline', color: '#10B981', bg: 'rgba(16,185,129,0.08)' },
+  'before-sleep': { icon: 'bed-outline', color: '#60A5FA', bg: 'rgba(96,165,250,0.08)' },
+  'upon-waking': { icon: 'alarm-outline', color: '#F472B6', bg: 'rgba(244,114,182,0.08)' },
+  'travel': { icon: 'airplane-outline', color: '#2DD4BF', bg: 'rgba(45,212,191,0.08)' },
+  'protection': { icon: 'shield-checkmark-outline', color: '#34D399', bg: 'rgba(52,211,153,0.08)' },
+  'entering-home': { icon: 'home-outline', color: '#A78BFA', bg: 'rgba(167,139,250,0.08)' },
+  'stress-anxiety': { icon: 'pulse-outline', color: '#F87171', bg: 'rgba(248,113,113,0.08)' },
+  'gratitude': { icon: 'heart-outline', color: '#EC4899', bg: 'rgba(236,72,153,0.08)' },
 };
 
 export default function DuasIndexScreen() {
@@ -72,10 +72,9 @@ export default function DuasIndexScreen() {
         const results: Dua[] = [];
         // Map through active categories and fetch duas to filter globally
         for (const cat of store.categories) {
-          const response = await fetch(`http://192.168.202.78:5000/api/duas/${cat.id}`);
-          const json = await response.json();
-          if (json.data) {
-            results.push(...json.data);
+          const data = await getDuasByCategory(cat.id);
+          if (data) {
+            results.push(...data);
           }
         }
 
@@ -116,17 +115,21 @@ export default function DuasIndexScreen() {
       {/* Screen Header */}
       <View style={styles.header}>
         <View style={styles.headerTitleRow}>
-          <View style={{ flex: 1 }}>
+          <View style={{ flex: 1, marginRight: 8 }}>
             <Text style={styles.headerTitle}>Duas & Dhikr</Text>
             <Text style={styles.headerSubtitle}>Prophetic Supplications & Remembrance</Text>
           </View>
-          <TouchableOpacity style={styles.tasbeehShortcutBtn} onPress={() => router.push('/duas/tasbeeh')}>
-            <View>
-              <TasbeehIcon color={COLORS.gold} size={24} />
-            </View>
-            {/* <Ionicons name="calculator-outline" size={20} color={COLORS.gold} /> */}
-            <Text style={styles.tasbeehShortcutText}>Tasbeeh</Text>
-          </TouchableOpacity>
+          <View style={styles.headerButtonsRow}>
+            <TouchableOpacity style={styles.headerActionCircleBtn} onPress={() => router.push('/duas/bookmarks')}>
+              <Ionicons name="bookmark-outline" size={20} color={COLORS.gold} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.tasbeehShortcutBtn} onPress={() => router.push('/duas/tasbeeh')}>
+              <View>
+                <TasbeehIcon color={COLORS.gold} size={24} />
+              </View>
+              <Text style={styles.tasbeehShortcutText}>Tasbeeh</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 
@@ -239,23 +242,35 @@ export default function DuasIndexScreen() {
 
           {/* Quick Tools Row */}
           <Text style={styles.sectionTitle}>Spiritual Companions</Text>
-          <View style={styles.toolsRow}>
-            <TouchableOpacity style={styles.toolCard} onPress={() => router.push('/duas/tasbeeh')}>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false} 
+            contentContainerStyle={styles.toolsScroll}
+          >
+            <TouchableOpacity style={styles.toolCardScroll} onPress={() => router.push('/duas/tasbeeh')}>
               <View style={styles.toolIconWrapper}>
-                <TasbeehIcon color={COLORS.gold} size={24} />
+                <TasbeehIcon color={COLORS.gold} size={22} />
               </View>
               <Text style={styles.toolTitle}>Tasbeeh Counter</Text>
               <Text style={styles.toolSubtitle}>Keep track of daily dhikr</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={[styles.toolCard, { borderColor: 'rgba(201,168,76,0.15)' }]} onPress={() => router.push('/duas/names')}>
+            <TouchableOpacity style={[styles.toolCardScroll, { borderColor: 'rgba(201,168,76,0.15)' }]} onPress={() => router.push('/duas/names')}>
               <View style={[styles.toolIconWrapper, { backgroundColor: 'rgba(201,168,76,0.08)' }]}>
-                <NamesIcon color={COLORS.gold} size={24} />
+                <NamesIcon color={COLORS.gold} size={22} />
               </View>
               <Text style={styles.toolTitle}>99 Names of Allah</Text>
               <Text style={styles.toolSubtitle}>Learn & memorize attributes</Text>
             </TouchableOpacity>
-          </View>
+
+            <TouchableOpacity style={[styles.toolCardScroll, { borderColor: 'rgba(45,212,191,0.15)' }]} onPress={() => router.push('/duas/bookmarks')}>
+              <View style={[styles.toolIconWrapper, { backgroundColor: 'rgba(45,212,191,0.08)' }]}>
+                <Ionicons name="bookmark-outline" color={COLORS.teal} size={22} />
+              </View>
+              <Text style={styles.toolTitle}>My Bookmarks</Text>
+              <Text style={styles.toolSubtitle}>Your saved supplications</Text>
+            </TouchableOpacity>
+          </ScrollView>
 
           {/* Browse Categories */}
           <Text style={styles.sectionTitle}>Browse Categories</Text>
@@ -272,7 +287,14 @@ export default function DuasIndexScreen() {
                   onPress={() => router.push(`/duas/${cat.id}`)}
                 >
                   <View style={styles.cardHeader}>
-                    <Text style={styles.categoryEmoji}>{CATEGORY_EMOJIS[cat.id] || '🕌'}</Text>
+                    {(() => {
+                      const meta = CATEGORY_ICONS[cat.id] || { icon: 'book-outline', color: COLORS.gold, bg: 'rgba(201,168,76,0.08)' };
+                      return (
+                        <View style={[styles.categoryIconWrapper, { backgroundColor: meta.bg }]}>
+                          <Ionicons name={meta.icon} size={20} color={meta.color} />
+                        </View>
+                      );
+                    })()}
                     <Text style={styles.categoryCount}>{cat.count} duas</Text>
                   </View>
                   <Text style={styles.categoryName} numberOfLines={2}>
@@ -452,8 +474,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 10,
   },
-  categoryEmoji: {
-    fontSize: 24,
+  categoryIconWrapper: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   categoryCount: {
     fontSize: 10,
@@ -553,13 +579,28 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginLeft: 6,
   },
-  toolsRow: {
+  headerButtonsRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 8,
+  },
+  headerActionCircleBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: 'rgba(201, 168, 76, 0.08)',
+    borderWidth: 0.5,
+    borderColor: 'rgba(201, 168, 76, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  toolsScroll: {
+    paddingRight: 20,
+    gap: 12,
     marginBottom: 10,
   },
-  toolCard: {
-    flex: 0.485,
+  toolCardScroll: {
+    width: 156,
     backgroundColor: COLORS.bg2,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.03)',

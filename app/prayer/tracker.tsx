@@ -14,11 +14,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
-import { useTrackerStore, PrayerStatus, DayRecord } from '../../../src/store/trackerStore';
-import { COLORS } from '../../../constants/theme';
-import Card from '../../../components/ui/Card';
-import ArabicGeometricBg from '../../../components/ui/ArabicGeometricBg';
-import DuaShareModal, { ShareData } from '../../../components/ui/DuaShareModal';
+import { useTrackerStore, PrayerStatus, DayRecord } from '../../src/store/trackerStore';
+import { COLORS } from '../../constants/theme';
+import { useThemeContext } from '../../src/context/ThemeContext';
+import { LinearGradient } from 'expo-linear-gradient';
+import Card from '../../components/ui/Card';
+import ArabicGeometricBg from '../../components/ui/ArabicGeometricBg';
+import DuaShareModal, { ShareData } from '../../components/ui/DuaShareModal';
 
 const { width } = Dimensions.get('window');
 
@@ -30,14 +32,17 @@ const PRAYERS: { key: keyof DayRecord; label: string; arabic: string }[] = [
   { key: 'isha', label: 'Isha', arabic: 'العشاء' },
 ];
 
-const STATUSES: { value: PrayerStatus; label: string; icon: string; color: string; bg: string }[] = [
-  { value: 'prayed', label: 'Prayed on Time', icon: 'checkmark-circle', color: COLORS.teal, bg: 'rgba(45,212,191,0.08)' },
-  { value: 'qadha', label: 'Qadha (Late)', icon: 'time', color: COLORS.gold, bg: 'rgba(201,168,76,0.08)' },
-  { value: 'missed', label: 'Missed', icon: 'close-circle', color: '#EF4444', bg: 'rgba(239,68,68,0.08)' },
-  { value: 'pending', label: 'Not Logged', icon: 'ellipse-outline', color: COLORS.text3, bg: 'rgba(255,255,255,0.03)' },
-];
-
 export default function SalahTrackerScreen() {
+  const { theme } = useThemeContext();
+  const isDark = theme === 'dark';
+
+  const STATUSES: { value: PrayerStatus; label: string; icon: string; color: string; bg: string }[] = [
+    { value: 'prayed', label: 'Prayed on Time', icon: 'checkmark-circle', color: '#10B981', bg: isDark ? 'rgba(16,185,129,0.1)' : 'rgba(16,185,129,0.06)' },
+    { value: 'qadha', label: 'Qadha (Late)', icon: 'time', color: COLORS.gold, bg: isDark ? 'rgba(201,168,76,0.1)' : 'rgba(201,168,76,0.06)' },
+    { value: 'missed', label: 'Missed', icon: 'close-circle', color: '#EF4444', bg: isDark ? 'rgba(239,68,68,0.1)' : 'rgba(239,68,68,0.06)' },
+    { value: 'pending', label: 'Not Logged', icon: 'ellipse-outline', color: COLORS.text3, bg: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)' },
+  ];
+
   const trackerStore = useTrackerStore();
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   
@@ -209,28 +214,43 @@ export default function SalahTrackerScreen() {
 
   // Color mappings
   const getStatusColor = (status: PrayerStatus) => {
-    if (status === 'prayed') return COLORS.teal;
+    if (status === 'prayed') return '#10B981';
     if (status === 'qadha') return COLORS.gold;
     if (status === 'missed') return '#EF4444';
     return COLORS.bg3;
   };
 
   const renderStatusIcon = (status: PrayerStatus) => {
-    if (status === 'prayed') return <Ionicons name="checkmark" size={24} color={COLORS.bg} />;
-    if (status === 'qadha') return <Text style={{ color: COLORS.bg, fontSize: 20, fontWeight: 'bold' }}>~</Text>;
+    if (status === 'prayed') return <Ionicons name="checkmark" size={24} color="#FFFFFF" />;
+    if (status === 'qadha') return <Text style={{ color: '#FFFFFF', fontSize: 20, fontWeight: 'bold' }}>~</Text>;
     if (status === 'missed') return <Ionicons name="close" size={24} color="#FFFFFF" />;
     return null;
   };
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right', 'top']}>
+      <LinearGradient
+        colors={isDark ? ['#0C101B', '#06080E'] : ['#FFFFFF', '#FAF8F3']}
+        style={StyleSheet.absoluteFillObject}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      />
       {/* Background patterns */}
       <ArabicGeometricBg size={420} style={styles.backgroundOverlay} />
 
       {/* Screen Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+        <TouchableOpacity 
+          style={styles.backButton} 
+          onPress={() => {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace('/(tabs)/prayer');
+            }
+          }}
+        >
+          <Ionicons name="arrow-back" size={24} color={COLORS.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Salah Tracker</Text>
         <TouchableOpacity 
@@ -302,7 +322,7 @@ export default function SalahTrackerScreen() {
                     style={[
                       styles.circleNode,
                       { borderColor: activeColor },
-                      status === 'prayed' && { backgroundColor: COLORS.teal },
+                      status === 'prayed' && { backgroundColor: '#10B981' },
                       status === 'qadha' && { backgroundColor: COLORS.gold },
                       status === 'missed' && { backgroundColor: '#EF4444' },
                     ]}
@@ -313,7 +333,7 @@ export default function SalahTrackerScreen() {
                   {/* Status Indicator Tag */}
                   <TouchableOpacity 
                     onPress={() => handleLongPress(p.key)}
-                    style={[styles.statusTag, { backgroundColor: `rgba(255,255,255,0.02)` }]}
+                    style={[styles.statusTag, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)' }]}
                   >
                     <Text style={[styles.statusTagText, { color: status !== 'pending' ? activeColor : COLORS.text3 }]}>
                       {status === 'pending' ? 'log status' : status.toUpperCase()}
@@ -572,7 +592,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.03)',
+    borderBottomColor: COLORS.bg3,
   },
   backButton: {
     width: 40,
@@ -587,7 +607,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: COLORS.text,
   },
   streakBadge: {
     backgroundColor: 'rgba(201,168,76,0.15)',
@@ -618,7 +638,7 @@ const styles = StyleSheet.create({
   motivationCard: {
     backgroundColor: COLORS.bg2,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.03)',
+    borderColor: COLORS.bg3,
     borderRadius: 16,
     padding: 16,
     marginTop: 16,
@@ -631,13 +651,13 @@ const styles = StyleSheet.create({
   motivationTitle: {
     fontSize: 15,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: COLORS.text,
     marginBottom: 4,
   },
   motivationSubtitle: {
     fontSize: 12,
     fontStyle: 'italic',
-    color: COLORS.text3,
+    color: COLORS.text2,
     maxWidth: width * 0.58,
     lineHeight: 18,
   },
@@ -648,7 +668,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 8,
     borderWidth: 0.5,
-    borderColor: 'rgba(255,255,255,0.05)',
+    borderColor: COLORS.bg3,
   },
   longestStreakLabel: {
     fontSize: 8,
@@ -676,7 +696,7 @@ const styles = StyleSheet.create({
   progressPct: {
     fontSize: 11,
     fontWeight: 'bold',
-    color: COLORS.teal,
+    color: COLORS.gold,
   },
   progressBarBg: {
     height: 6,
@@ -686,19 +706,19 @@ const styles = StyleSheet.create({
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: COLORS.teal,
+    backgroundColor: COLORS.gold,
     borderRadius: 3,
   },
   todayCard: {
     backgroundColor: COLORS.bg2,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.03)',
+    borderColor: COLORS.bg3,
     borderRadius: 16,
     padding: 16,
   },
   todayDesc: {
     fontSize: 12,
-    color: COLORS.text3,
+    color: COLORS.text2,
     marginBottom: 16,
   },
   nodesContainer: {
@@ -710,7 +730,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.02)',
+    borderBottomColor: COLORS.bg3,
   },
   prayerMetaCol: {
     width: '32%',
@@ -718,7 +738,7 @@ const styles = StyleSheet.create({
   prayerName: {
     fontSize: 15,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: COLORS.text,
   },
   prayerArabic: {
     fontSize: 11,
@@ -740,7 +760,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 8,
     borderWidth: 0.5,
-    borderColor: 'rgba(255,255,255,0.03)',
+    borderColor: COLORS.bg3,
   },
   statusTagText: {
     fontSize: 9,
@@ -750,7 +770,7 @@ const styles = StyleSheet.create({
   weeklyCard: {
     backgroundColor: COLORS.bg2,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.03)',
+    borderColor: COLORS.bg3,
     borderRadius: 16,
     padding: 16,
   },
@@ -759,7 +779,7 @@ const styles = StyleSheet.create({
   },
   weeklyDesc: {
     fontSize: 11,
-    color: COLORS.text3,
+    color: COLORS.text2,
   },
   weeklyGrid: {
     flexDirection: 'row',
@@ -772,9 +792,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   weeklyColToday: {
-    backgroundColor: 'rgba(45,212,191,0.05)',
+    backgroundColor: 'rgba(201,168,76,0.08)',
     borderWidth: 0.5,
-    borderColor: COLORS.teal,
+    borderColor: COLORS.gold,
   },
   weeklyDayName: {
     fontSize: 9,
@@ -783,7 +803,7 @@ const styles = StyleSheet.create({
   },
   weeklyDayNum: {
     fontSize: 12,
-    color: '#FFFFFF',
+    color: COLORS.text,
     fontWeight: 'bold',
     marginTop: 4,
     marginBottom: 10,
@@ -809,7 +829,7 @@ const styles = StyleSheet.create({
     padding: 12,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.03)',
+    borderColor: COLORS.bg3,
   },
   statLabel: {
     fontSize: 10,
@@ -820,7 +840,7 @@ const styles = StyleSheet.create({
   statVal: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: COLORS.text,
     marginTop: 4,
   },
   calendarCard: {
@@ -828,7 +848,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.03)',
+    borderColor: COLORS.bg3,
   },
   calendarHeaderRow: {
     flexDirection: 'row',
@@ -839,12 +859,12 @@ const styles = StyleSheet.create({
   calendarMonthName: {
     fontSize: 15,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: COLORS.text,
   },
   calendarMonthStats: {
     fontSize: 11,
     fontWeight: 'bold',
-    color: COLORS.teal,
+    color: COLORS.gold,
   },
   calendarGrid: {
     flexDirection: 'row',
@@ -867,12 +887,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: COLORS.bg3,
     borderWidth: 0.5,
-    borderColor: 'rgba(255,255,255,0.02)',
+    borderColor: COLORS.bg3,
     marginBottom: 6,
   },
   calendarDayCellToday: {
-    borderColor: COLORS.teal,
-    backgroundColor: 'rgba(45,212,191,0.04)',
+    borderColor: COLORS.gold,
+    backgroundColor: 'rgba(201,168,76,0.08)',
   },
   calendarDayCellEmpty: {
     width: '13%',
@@ -906,7 +926,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
     padding: 24,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.04)',
+    borderTopColor: COLORS.bg3,
   },
   sheetHandle: {
     width: 40,
@@ -919,7 +939,7 @@ const styles = StyleSheet.create({
   sheetTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: COLORS.text,
     marginBottom: 18,
     textAlign: 'center',
   },
@@ -959,13 +979,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.03)',
+    borderBottomColor: COLORS.bg3,
     paddingBottom: 12,
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: COLORS.text,
   },
   modalDate: {
     fontSize: 12,
@@ -979,7 +999,7 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     marginBottom: 16,
     borderBottomWidth: 0.5,
-    borderBottomColor: 'rgba(255,255,255,0.02)',
+    borderBottomColor: COLORS.bg3,
     paddingBottom: 12,
   },
   modalPrayerMeta: {
@@ -991,7 +1011,7 @@ const styles = StyleSheet.create({
   modalPrayerLabel: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: COLORS.text,
   },
   modalPrayerArabic: {
     fontSize: 12,
@@ -1016,13 +1036,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   modalCloseBtn: {
-    backgroundColor: COLORS.teal,
+    backgroundColor: COLORS.gold,
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: 'center',
   },
   modalCloseBtnText: {
-    color: COLORS.bg,
+    color: '#FFFFFF',
     fontSize: 14,
     fontWeight: 'bold',
   },

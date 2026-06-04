@@ -20,10 +20,11 @@ import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 
-import { COLORS } from '../../../constants/theme';
-import Card from '../../../components/ui/Card';
-import ArabicGeometricBg from '../../../components/ui/ArabicGeometricBg';
-import { useThemeContext } from '../../../src/context/ThemeContext';
+import { COLORS } from '../../constants/theme';
+import Card from '../../components/ui/Card';
+import ArabicGeometricBg from '../../components/ui/ArabicGeometricBg';
+import { useThemeContext } from '../../src/context/ThemeContext';
+import { getNamesOfAllah } from '../../src/api/client';
 
 const { height, width } = Dimensions.get('window');
 
@@ -78,11 +79,10 @@ export default function NamesOfAllahScreen() {
   const fetchNames = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://192.168.202.78:5000/api/duas/names');
-      const json = await response.json();
-      if (json.data) {
-        setNames(json.data);
-        calculateNameOfDay(json.data);
+      const data = await getNamesOfAllah();
+      if (data) {
+        setNames(data);
+        calculateNameOfDay(data);
       }
     } catch (err) {
       console.warn('Failed to load names of Allah:', err);
@@ -148,7 +148,7 @@ export default function NamesOfAllahScreen() {
         shouldPlayInBackground: true,
       });
 
-      const player = createAudioPlayer(require('../../../assets/audio/asmaul-husna.mp3'));
+      const player = createAudioPlayer(require('../../assets/audio/asmaul-husna.mp3'));
       playerRef.current = player;
 
       const subscription = player.addListener('playbackStatusUpdate', (status) => {
@@ -234,7 +234,16 @@ export default function NamesOfAllahScreen() {
 
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <TouchableOpacity 
+          style={styles.backButton} 
+          onPress={() => {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace('/(tabs)/duas/index');
+            }
+          }}
+        >
           <Ionicons name="arrow-back" size={24} color={COLORS.text} />
         </TouchableOpacity>
         <View style={styles.headerTitleRow}>

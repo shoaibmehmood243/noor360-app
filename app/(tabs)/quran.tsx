@@ -5,15 +5,19 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useIsFocused } from '@react-navigation/native';
 
 import { useQuran } from '../../src/hooks/useQuran';
 import { getVerseOfDay, searchQuran, Surah } from '../../src/api/client';
 import { COLORS } from '../../constants/theme';
+import { useThemeContext } from '../../src/context/ThemeContext';
 import { AppHeader } from '../../components/AppHeader';
 import Card from '../../components/ui/Card';
 import GoldBadge from '../../components/ui/GoldBadge';
 import SkeletonLoader from '../../components/ui/SkeletonLoader';
 import ArabicText from '../../components/ui/ArabicText';
+import EmptyState from '../../components/ui/EmptyState';
+import { getDownloadedSurahsList } from '../../src/services/quranOfflineManager';
 
 const TRANSLATIONS = [
   { id: 'en.sahih', name: 'English 🇬🇧' },
@@ -22,7 +26,43 @@ const TRANSLATIONS = [
   { id: 'none', name: 'Arabic Only 🇸🇦' },
 ];
 
+const JUZ_LIST = [
+  { number: 1, name: "Alif-Lam-Meem", nameAr: "آلم", startAyah: "Al-Fatihah 1:1" },
+  { number: 2, name: "Sayaqool", nameAr: "سيقول", startAyah: "Al-Baqarah 2:142" },
+  { number: 3, name: "Tilkal Rusul", nameAr: "تلك الرسل", startAyah: "Al-Baqarah 2:253" },
+  { number: 4, name: "Lan Tanaloo", nameAr: "لن تنالوا", startAyah: "Ali 'Imran 3:93" },
+  { number: 5, name: "Wal Muhsanat", nameAr: "والمحصنات", startAyah: "An-Nisa 4:24" },
+  { number: 6, name: "La Yuhibbullah", nameAr: "لا يحب الله", startAyah: "An-Nisa 4:148" },
+  { number: 7, name: "Wa Iza Sami'oo", nameAr: "وإذا سمعوا", startAyah: "Al-Ma'idah 5:82" },
+  { number: 8, name: "Wa Lau Annana", nameAr: "ولو أننا", startAyah: "Al-An'am 6:111" },
+  { number: 9, name: "Qal Al-Mala'u", nameAr: "قال الملأ", startAyah: "Al-A'raf 7:88" },
+  { number: 10, name: "Wa'lamoo", nameAr: "واعلموا", startAyah: "Al-Anfal 8:41" },
+  { number: 11, name: "Ya'taziroon", nameAr: "يعتذرون", startAyah: "At-Tawbah 9:93" },
+  { number: 12, name: "Wa Mamin Da'abbah", nameAr: "وما من دابة", startAyah: "Hud 11:6" },
+  { number: 13, name: "Wa Ma Ubarri'u", nameAr: "وما أبرئ", startAyah: "Yusuf 12:53" },
+  { number: 14, name: "Rubama", nameAr: "ربما", startAyah: "Al-Hijr 15:1" },
+  { number: 15, name: "Subhanallazi", nameAr: "سبحان الذي", startAyah: "Al-Isra 17:1" },
+  { number: 16, name: "Qal Alam", nameAr: "قال ألم", startAyah: "Al-Kahf 18:75" },
+  { number: 17, name: "Aqtaraba", nameAr: "اقترب", startAyah: "Al-Anbiya 21:1" },
+  { number: 18, name: "Qad Aflaha", nameAr: "قد أفلح", startAyah: "Al-Mu'minun 23:1" },
+  { number: 19, name: "Wa Qalallazina", nameAr: "وقال الذين", startAyah: "Al-Furqan 25:21" },
+  { number: 20, name: "Aman Khalaqa", nameAr: "أمن خلق", startAyah: "An-Naml 27:56" },
+  { number: 21, name: "Utlu Ma Oohiya", nameAr: "اتل ما أوحي", startAyah: "Al-Ankabut 29:46" },
+  { number: 22, name: "Wa Man Yaqnut", nameAr: "ومن يقنت", startAyah: "Al-Ahzab 33:31" },
+  { number: 23, name: "Wa Maliya", nameAr: "وما لي", startAyah: "Yaseen 36:28" },
+  { number: 24, name: "Faman Azlamu", nameAr: "فمن أظلم", startAyah: "Az-Zumar 39:32" },
+  { number: 25, name: "Ilaihi Yuraddu", nameAr: "إليه يرد", startAyah: "Fussilat 41:47" },
+  { number: 26, name: "Ha Meem", nameAr: "حم", startAyah: "Al-Ahqaf 46:1" },
+  { number: 27, name: "Qala Fama Khatbukum", nameAr: "قال فما خطبكم", startAyah: "Az-Zariyat 51:31" },
+  { number: 28, name: "Qad Sami'allah", nameAr: "قد سمع الله", startAyah: "Al-Mujadilah 58:1" },
+  { number: 29, name: "Tabarakallazi", nameAr: "تبارك الذي", startAyah: "Al-Mulk 67:1" },
+  { number: 30, name: "Amma Yatasa'aloon", nameAr: "عم يتساءلون", startAyah: "An-Naba 78:1" },
+];
+
 export default function QuranHomeScreen() {
+  const { theme } = useThemeContext();
+  const isDark = theme === 'dark';
+
   const router = useRouter();
   const quran = useQuran();
 
@@ -34,12 +74,71 @@ export default function QuranHomeScreen() {
   const [searchFocused, setSearchFocused] = useState(false);
   const [lastRead, setLastRead] = useState<{ surahId: number; surahName: string; verseNumber: number } | null>(null);
   const [activeFilter, setActiveFilter] = useState<'All' | 'Meccan' | 'Medinan' | 'Bookmarked'>('All');
+  const [activeTab, setActiveTab] = useState<'surah' | 'para' | 'favourites'>('surah');
+  const [favouriteSurahs, setFavouriteSurahs] = useState<number[]>([]);
+  const [favouriteJuz, setFavouriteJuz] = useState<number[]>([]);
+
+  const isFocused = useIsFocused();
+  const [downloadedSurahs, setDownloadedSurahs] = useState<number[]>([]);
+
+  // Load downloaded surahs whenever screen becomes focused
+  const loadDownloadedSurahs = async () => {
+    let activeReciter = 'ar.alafasy';
+    try {
+      const { usePreferencesStore } = require('../../src/store/usePreferencesStore');
+      activeReciter = usePreferencesStore.getState().selectedReciter || 'ar.alafasy';
+    } catch (e) {}
+    const list = await getDownloadedSurahsList(activeReciter);
+    setDownloadedSurahs(list);
+  };
+
+  useEffect(() => {
+    if (isFocused) {
+      loadDownloadedSurahs();
+    }
+  }, [isFocused]);
 
   // Load initial datasets
   useEffect(() => {
     fetchDailyVerse();
     loadLastRead();
+    loadFavourites();
   }, []);
+
+  const loadFavourites = async () => {
+    try {
+      const favSurahs = await AsyncStorage.getItem('favourite_surahs');
+      const favJuz = await AsyncStorage.getItem('favourite_juz');
+      if (favSurahs) setFavouriteSurahs(JSON.parse(favSurahs));
+      if (favJuz) setFavouriteJuz(JSON.parse(favJuz));
+    } catch (e) {
+      console.warn('Failed to load favourites:', e);
+    }
+  };
+
+  const toggleFavouriteSurah = async (surahNumber: number) => {
+    try {
+      const updated = favouriteSurahs.includes(surahNumber)
+        ? favouriteSurahs.filter(id => id !== surahNumber)
+        : [...favouriteSurahs, surahNumber];
+      setFavouriteSurahs(updated);
+      await AsyncStorage.setItem('favourite_surahs', JSON.stringify(updated));
+    } catch (e) {
+      console.warn('Failed to save favourite surah:', e);
+    }
+  };
+
+  const toggleFavouriteJuz = async (juzNumber: number) => {
+    try {
+      const updated = favouriteJuz.includes(juzNumber)
+        ? favouriteJuz.filter(num => num !== juzNumber)
+        : [...favouriteJuz, juzNumber];
+      setFavouriteJuz(updated);
+      await AsyncStorage.setItem('favourite_juz', JSON.stringify(updated));
+    } catch (e) {
+      console.warn('Failed to save favourite juz:', e);
+    }
+  };
 
   // Sync Last Read on focus/load
   const loadLastRead = async () => {
@@ -129,6 +228,12 @@ export default function QuranHomeScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right']}>
+      <LinearGradient
+        colors={isDark ? ['#0C101B', '#06080E'] : ['#FFFFFF', '#FAF8F3']}
+        style={StyleSheet.absoluteFillObject}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      />
       {/* Shared branding App Header with Bismillah */}
       <AppHeader onSettingsPress={() => router.push('/settings')} />
 
@@ -284,39 +389,147 @@ export default function QuranHomeScreen() {
           </ScrollView>
         </View>
 
-        {/* 5. Surah Grid Matrix Header Filter Pills */}
-        <View style={styles.section}>
-          <View style={styles.filterRow}>
-            {(['All', 'Meccan', 'Medinan', 'Bookmarked'] as const).map((filter) => {
-              const isActive = activeFilter === filter;
-              return (
-                <TouchableOpacity
-                  key={filter}
-                  style={[styles.filterPill, isActive && styles.filterPillActive]}
-                  onPress={() => setActiveFilter(filter)}
-                >
-                  <Text style={[styles.filterPillText, isActive && styles.filterPillTextActive]}>
-                    {filter}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+        {/* Main Tabs Selection */}
+        <View style={styles.tabContainer}>
+          <TouchableOpacity
+            style={[styles.tabButton, activeTab === 'surah' && styles.tabButtonActive]}
+            onPress={() => setActiveTab('surah')}
+          >
+            <Ionicons
+              name="book-outline"
+              size={18}
+              color={activeTab === 'surah' ? COLORS.gold : COLORS.text3}
+              style={{ marginRight: 6 }}
+            />
+            <Text style={[styles.tabButtonText, activeTab === 'surah' && styles.tabButtonTextActive]}>
+              By Surah
+            </Text>
+          </TouchableOpacity>
 
-          {/* Surah List */}
-          {quran.isLoading && quran.surahs.length === 0 ? (
-            <View style={styles.loadingContainer}>
-              <SkeletonLoader width="100%" height={70} borderRadius={12} style={styles.skeletonItem} />
-              <SkeletonLoader width="100%" height={70} borderRadius={12} style={styles.skeletonItem} />
-              <SkeletonLoader width="100%" height={70} borderRadius={12} style={styles.skeletonItem} />
+          <TouchableOpacity
+            style={[styles.tabButton, activeTab === 'para' && styles.tabButtonActive]}
+            onPress={() => setActiveTab('para')}
+          >
+            <Ionicons
+              name="list-outline"
+              size={18}
+              color={activeTab === 'para' ? COLORS.gold : COLORS.text3}
+              style={{ marginRight: 6 }}
+            />
+            <Text style={[styles.tabButtonText, activeTab === 'para' && styles.tabButtonTextActive]}>
+              By Para
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.tabButton, activeTab === 'favourites' && styles.tabButtonActive]}
+            onPress={() => setActiveTab('favourites')}
+          >
+            <Ionicons
+              name={activeTab === 'favourites' ? "star" : "star-outline"}
+              size={18}
+              color={activeTab === 'favourites' ? COLORS.gold : COLORS.text3}
+              style={{ marginRight: 6 }}
+            />
+            <Text style={[styles.tabButtonText, activeTab === 'favourites' && styles.tabButtonTextActive]}>
+              Favourites
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Tab Contents */}
+        <View style={styles.section}>
+          {activeTab === 'surah' && (
+            <View>
+              <View style={styles.filterRow}>
+                {(['All', 'Meccan', 'Medinan', 'Bookmarked'] as const).map((filter) => {
+                  const isActive = activeFilter === filter;
+                  return (
+                    <TouchableOpacity
+                      key={filter}
+                      style={[styles.filterPill, isActive && styles.filterPillActive]}
+                      onPress={() => setActiveFilter(filter)}
+                    >
+                      <Text style={[styles.filterPillText, isActive && styles.filterPillTextActive]}>
+                        {filter}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {quran.isLoading && quran.surahs.length === 0 ? (
+                <View style={styles.loadingContainer}>
+                  <SkeletonLoader width="100%" height={70} borderRadius={12} style={styles.skeletonItem} />
+                  <SkeletonLoader width="100%" height={70} borderRadius={12} style={styles.skeletonItem} />
+                  <SkeletonLoader width="100%" height={70} borderRadius={12} style={styles.skeletonItem} />
+                </View>
+              ) : (
+                <View style={styles.surahList}>
+                  {getFilteredSurahs().map((item: Surah) => (
+                    <TouchableOpacity
+                      key={item.number}
+                      style={styles.surahRow}
+                      onPress={() => handleSelectSurah(item)}
+                      activeOpacity={0.7}
+                    >
+                      <View style={styles.surahLeft}>
+                        <View style={styles.numberBox}>
+                          <Text style={styles.numberText}>{item.number}</Text>
+                        </View>
+                        <View style={styles.metaBox}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            <Text style={styles.englishName}>{item.englishName}</Text>
+                            {downloadedSurahs.includes(item.number) && (
+                              <Ionicons
+                                name="cloud-done"
+                                size={14}
+                                color={COLORS.gold}
+                                style={{ marginLeft: 6 }}
+                              />
+                            )}
+                          </View>
+                          <Text style={styles.subMeta}>
+                            {item.numberOfAyahs} Verses • {item.englishNameTranslation}
+                          </Text>
+                        </View>
+                      </View>
+                      <View style={styles.surahRight}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                          <View style={{ marginRight: 8, alignItems: 'flex-end' }}>
+                            <ArabicText text={item.name} size={18} bold style={styles.arabicName} />
+                            <GoldBadge
+                              text={item.revelationType}
+                              style={styles.revelationBadge}
+                              textStyle={styles.revelationBadgeText}
+                            />
+                          </View>
+                          <TouchableOpacity
+                            onPress={() => toggleFavouriteSurah(item.number)}
+                            style={{ padding: 6 }}
+                          >
+                            <Ionicons
+                              name={favouriteSurahs.includes(item.number) ? "star" : "star-outline"}
+                              size={20}
+                              color={favouriteSurahs.includes(item.number) ? COLORS.gold : COLORS.text3}
+                            />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
             </View>
-          ) : (
+          )}
+
+          {activeTab === 'para' && (
             <View style={styles.surahList}>
-              {getFilteredSurahs().map((item: Surah) => (
+              {JUZ_LIST.map((item) => (
                 <TouchableOpacity
                   key={item.number}
                   style={styles.surahRow}
-                  onPress={() => handleSelectSurah(item)}
+                  onPress={() => router.push(`/quran/juz/${item.number}`)}
                   activeOpacity={0.7}
                 >
                   <View style={styles.surahLeft}>
@@ -324,22 +537,169 @@ export default function QuranHomeScreen() {
                       <Text style={styles.numberText}>{item.number}</Text>
                     </View>
                     <View style={styles.metaBox}>
-                      <Text style={styles.englishName}>{item.englishName}</Text>
+                      <Text style={styles.englishName}>{item.name}</Text>
                       <Text style={styles.subMeta}>
-                        {item.numberOfAyahs} Verses • {item.englishNameTranslation}
+                        Starts at {item.startAyah}
                       </Text>
                     </View>
                   </View>
                   <View style={styles.surahRight}>
-                    <ArabicText text={item.name} size={20} bold style={styles.arabicName} />
-                    <GoldBadge
-                      text={item.revelationType}
-                      style={styles.revelationBadge}
-                      textStyle={styles.revelationBadgeText}
-                    />
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <View style={{ marginRight: 8, alignItems: 'flex-end' }}>
+                        <Text style={[styles.arabicName, { fontSize: 18, fontWeight: 'bold', fontFamily: 'Amiri_700Bold', color: COLORS.gold2 }]}>
+                          {item.nameAr}
+                        </Text>
+                        <GoldBadge
+                          text={`Juz ${item.number}`}
+                          style={styles.revelationBadge}
+                          textStyle={styles.revelationBadgeText}
+                        />
+                      </View>
+                      <TouchableOpacity
+                        onPress={() => toggleFavouriteJuz(item.number)}
+                        style={{ padding: 6 }}
+                      >
+                        <Ionicons
+                          name={favouriteJuz.includes(item.number) ? "star" : "star-outline"}
+                          size={20}
+                          color={favouriteJuz.includes(item.number) ? COLORS.gold : COLORS.text3}
+                        />
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 </TouchableOpacity>
               ))}
+            </View>
+          )}
+
+          {activeTab === 'favourites' && (
+            <View>
+              {favouriteSurahs.length === 0 && favouriteJuz.length === 0 ? (
+                <EmptyState
+                  iconName="star-outline"
+                  title="No Favourites"
+                  subtitle="Mark Surahs or Paras as favourites to easily read them here."
+                  style={{ marginTop: 20 }}
+                />
+              ) : (
+                <View>
+                  {favouriteSurahs.length > 0 && (
+                    <View style={{ marginBottom: 20 }}>
+                      <Text style={styles.favSectionTitle}>Favourited Surahs</Text>
+                      <View style={styles.surahList}>
+                        {quran.surahs
+                          .filter((s: Surah) => favouriteSurahs.includes(s.number))
+                          .map((item: Surah) => (
+                            <TouchableOpacity
+                              key={item.number}
+                              style={styles.surahRow}
+                              onPress={() => handleSelectSurah(item)}
+                              activeOpacity={0.7}
+                            >
+                              <View style={styles.surahLeft}>
+                                <View style={styles.numberBox}>
+                                  <Text style={styles.numberText}>{item.number}</Text>
+                                </View>
+                                <View style={styles.metaBox}>
+                                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                    <Text style={styles.englishName}>{item.englishName}</Text>
+                                    {downloadedSurahs.includes(item.number) && (
+                                      <Ionicons
+                                        name="cloud-done"
+                                        size={14}
+                                        color={COLORS.gold}
+                                        style={{ marginLeft: 6 }}
+                                      />
+                                    )}
+                                  </View>
+                                  <Text style={styles.subMeta}>
+                                    {item.numberOfAyahs} Verses • {item.englishNameTranslation}
+                                  </Text>
+                                </View>
+                              </View>
+                              <View style={styles.surahRight}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                  <View style={{ marginRight: 8, alignItems: 'flex-end' }}>
+                                    <ArabicText text={item.name} size={18} bold style={styles.arabicName} />
+                                    <GoldBadge
+                                      text={item.revelationType}
+                                      style={styles.revelationBadge}
+                                      textStyle={styles.revelationBadgeText}
+                                    />
+                                  </View>
+                                  <TouchableOpacity
+                                    onPress={() => toggleFavouriteSurah(item.number)}
+                                    style={{ padding: 6 }}
+                                  >
+                                    <Ionicons
+                                      name="star"
+                                      size={20}
+                                      color={COLORS.gold}
+                                    />
+                                  </TouchableOpacity>
+                                </View>
+                              </View>
+                            </TouchableOpacity>
+                          ))}
+                      </View>
+                    </View>
+                  )}
+
+                  {favouriteJuz.length > 0 && (
+                    <View>
+                      <Text style={styles.favSectionTitle}>Favourited Paras (Juz)</Text>
+                      <View style={styles.surahList}>
+                        {JUZ_LIST
+                          .filter((j) => favouriteJuz.includes(j.number))
+                          .map((item) => (
+                            <TouchableOpacity
+                              key={item.number}
+                              style={styles.surahRow}
+                              onPress={() => router.push(`/quran/juz/${item.number}`)}
+                              activeOpacity={0.7}
+                            >
+                              <View style={styles.surahLeft}>
+                                <View style={styles.numberBox}>
+                                  <Text style={styles.numberText}>{item.number}</Text>
+                                </View>
+                                <View style={styles.metaBox}>
+                                  <Text style={styles.englishName}>{item.name}</Text>
+                                  <Text style={styles.subMeta}>
+                                    Starts at {item.startAyah}
+                                  </Text>
+                                </View>
+                              </View>
+                              <View style={styles.surahRight}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                  <View style={{ marginRight: 8, alignItems: 'flex-end' }}>
+                                    <Text style={[styles.arabicName, { fontSize: 18, fontWeight: 'bold', fontFamily: 'Amiri_700Bold', color: COLORS.gold2 }]}>
+                                      {item.nameAr}
+                                    </Text>
+                                    <GoldBadge
+                                      text={`Juz ${item.number}`}
+                                      style={styles.revelationBadge}
+                                      textStyle={styles.revelationBadgeText}
+                                    />
+                                  </View>
+                                  <TouchableOpacity
+                                    onPress={() => toggleFavouriteJuz(item.number)}
+                                    style={{ padding: 6 }}
+                                  >
+                                    <Ionicons
+                                      name="star"
+                                      size={20}
+                                      color={COLORS.gold}
+                                    />
+                                  </TouchableOpacity>
+                                </View>
+                              </View>
+                            </TouchableOpacity>
+                          ))}
+                      </View>
+                    </View>
+                  )}
+                </View>
+              )}
             </View>
           )}
         </View>
@@ -642,5 +1002,45 @@ const styles = StyleSheet.create({
     color: COLORS.text3,
     marginTop: 2,
     fontWeight: '600',
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.bg2,
+    marginHorizontal: 20,
+    marginTop: 24,
+    borderRadius: 12,
+    padding: 6,
+    borderWidth: 1,
+    borderColor: COLORS.bg3,
+  },
+  tabButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  tabButtonActive: {
+    backgroundColor: COLORS.bg3,
+    borderWidth: 0.5,
+    borderColor: 'rgba(201, 168, 76, 0.2)',
+  },
+  tabButtonText: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: COLORS.text3,
+  },
+  tabButtonTextActive: {
+    color: COLORS.gold,
+  },
+  favSectionTitle: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: COLORS.gold,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 12,
+    marginTop: 10,
   },
 });

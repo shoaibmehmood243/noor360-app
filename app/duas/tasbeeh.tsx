@@ -18,12 +18,49 @@ import { router } from 'expo-router';
 import Svg, { Circle } from 'react-native-svg';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { createAudioPlayer } from 'expo-audio';
+import { LinearGradient } from 'expo-linear-gradient';
 
-import { COLORS } from '../../../constants/theme';
-import { saveUserPreferences } from '../../../src/api/client';
-import Card from '../../../components/ui/Card';
+import { COLORS } from '../../constants/theme';
+import { useThemeContext } from '../../src/context/ThemeContext';
+import { saveUserPreferences } from '../../src/api/client';
+import Card from '../../components/ui/Card';
 
 const { width, height } = Dimensions.get('window');
+
+interface BeadTheme {
+  primary: string;
+  secondary: string;
+  bgTranslucent: string;
+  name: string;
+}
+
+const BEAD_THEMES: Record<'sandalwood' | 'amber' | 'gold' | 'clay', BeadTheme> = {
+  sandalwood: {
+    primary: '#8B5A2B',
+    secondary: '#D2B48C',
+    bgTranslucent: 'rgba(139, 90, 43, 0.15)',
+    name: 'Sandalwood',
+  },
+  amber: {
+    primary: '#FFBF00',
+    secondary: '#D97706',
+    bgTranslucent: 'rgba(255, 191, 0, 0.15)',
+    name: 'Amber',
+  },
+  gold: {
+    primary: '#C9A84C',
+    secondary: '#B58920',
+    bgTranslucent: 'rgba(201, 168, 76, 0.15)',
+    name: 'Royal Gold',
+  },
+  clay: {
+    primary: '#E2725B',
+    secondary: '#C2B280',
+    bgTranslucent: 'rgba(226, 114, 91, 0.15)',
+    name: 'Terracotta',
+  },
+};
 
 interface DhikrItem {
   name: string;
@@ -40,6 +77,9 @@ const DEFAULT_DHIKRS: DhikrItem[] = [
 ];
 
 export default function TasbeehScreen() {
+  const { theme } = useThemeContext();
+  const isDark = theme === 'dark';
+
   // Counter States
   const [count, setCount] = useState(0);
   const [dhikrIndex, setDhikrIndex] = useState(0);
@@ -67,6 +107,28 @@ export default function TasbeehScreen() {
   // Reset Modal
   const [resetModalVisible, setResetModalVisible] = useState(false);
 
+  // Interactive Customizations
+  const [beadThemeKey, setBeadThemeKey] = useState<'sandalwood' | 'amber' | 'gold' | 'clay'>('gold');
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [hapticMode, setHapticMode] = useState<'light' | 'medium' | 'heavy' | 'off'>('light');
+
+  // Preloaded audio players
+  const clickPlayer = useRef<any>(null);
+  const successPlayer = useRef<any>(null);
+
+  useEffect(() => {
+    try {
+      clickPlayer.current = createAudioPlayer('https://assets.mixkit.co/active_storage/sfx/2568/2568-84.wav');
+      successPlayer.current = createAudioPlayer('https://assets.mixkit.co/active_storage/sfx/2019/2019-84.wav');
+    } catch (err) {
+      console.warn('Audio preloading failed:', err);
+    }
+    return () => {
+      try { clickPlayer.current?.release(); } catch(e){}
+      try { successPlayer.current?.release(); } catch(e){}
+    };
+  }, []);
+
   // Animations
   const fillAnim = useRef(new Animated.Value(0)).current;
   const burstScale = useRef(new Animated.Value(1)).current;
@@ -84,11 +146,13 @@ export default function TasbeehScreen() {
   };
 
   const activeTarget = getActiveTarget();
+  const beadTheme = BEAD_THEMES[beadThemeKey];
 
   // Load state and stats
   useEffect(() => {
     loadDhikrState();
     loadStats();
+    loadPreferences();
   }, []);
 
   // Update ring progress animate
@@ -100,6 +164,27 @@ export default function TasbeehScreen() {
       useNativeDriver: false,
     }).start();
   }, [count, activeTarget]);
+
+  const loadPreferences = async () => {
+    try {
+      const savedTheme = await AsyncStorage.getItem('tasbeeh_bead_theme');
+      if (savedTheme && (savedTheme === 'sandalwood' || savedTheme === 'amber' || savedTheme === 'gold' || savedTheme === 'clay')) {
+        setBeadThemeKey(savedTheme);
+      }
+      
+      const savedSound = await AsyncStorage.getItem('tasbeeh_sound_enabled');
+      if (savedSound !== null) {
+        setSoundEnabled(JSON.parse(savedSound));
+      }
+      
+      const savedHaptic = await AsyncStorage.getItem('tasbeeh_haptic_mode');
+      if (savedHaptic && (savedHaptic === 'light' || savedHaptic === 'medium' || savedHaptic === 'heavy' || savedHaptic === 'off')) {
+        setHapticMode(savedHaptic);
+      }
+    } catch(e) {
+      console.warn('Failed to load tasbeeh preferences:', e);
+    }
+  };
 
   // Load initial states
   const loadDhikrState = async () => {
@@ -182,7 +267,24 @@ export default function TasbeehScreen() {
 
   // Perform counter increment
   const handleIncrement = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    // Play haptic feedback if not disabled
+    if (hapticMode !== 'off') {
+      const style = hapticMode === 'light' ? Haptics.ImpactFeedbackStyle.Light
+                  : hapticMode === 'medium' ? Haptics.ImpactFeedbackStyle.Medium
+                  : Haptics.ImpactFeedbackStyle.Heavy;
+      Haptics.impactAsync(style).catch(() => {});
+    }
+
+    // Play tactile mechanical click sound
+    if (soundEnabled && clickPlayer.current) {
+      try {
+        clickPlayer.current.seekTo(0);
+        clickPlayer.current.play();
+      } catch (err) {
+        console.warn('Audio click failed:', err);
+      }
+    }
+
     incrementStats();
 
     const target = getActiveTarget();
@@ -190,7 +292,18 @@ export default function TasbeehScreen() {
 
     if (nextCount >= target) {
       // Goal hit!
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      
+      // Play target success chime sound
+      if (soundEnabled && successPlayer.current) {
+        try {
+          successPlayer.current.seekTo(0);
+          successPlayer.current.play();
+        } catch (err) {
+          console.warn('Audio chime failed:', err);
+        }
+      }
+
       triggerCelebration();
 
       if (targetType === 'auto') {
@@ -302,9 +415,24 @@ export default function TasbeehScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right', 'top']}>
+      <LinearGradient
+        colors={isDark ? ['#0C101B', '#06080E'] : ['#FFFFFF', '#FAF8F3']}
+        style={StyleSheet.absoluteFillObject}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      />
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <TouchableOpacity 
+          style={styles.backButton} 
+          onPress={() => {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace('/(tabs)/duas/index');
+            }
+          }}
+        >
           <Ionicons name="arrow-back" size={24} color={COLORS.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Tasbeeh Counter</Text>
@@ -322,7 +450,7 @@ export default function TasbeehScreen() {
             return (
               <TouchableOpacity
                 key={type}
-                style={[styles.targetPill, active && styles.targetPillActive]}
+                style={[styles.targetPill, active && { backgroundColor: beadTheme.primary, borderColor: beadTheme.primary }]}
                 onPress={() => {
                   if (type === 'custom') {
                     setCustomInputVisible(true);
@@ -341,6 +469,73 @@ export default function TasbeehScreen() {
         </View>
       </View>
 
+      {/* Interactive Customizations Row (Theme Dots, Audio Mute, Haptics Mode) */}
+      <View style={styles.controlsRow}>
+        <View style={styles.controlGroup}>
+          <Text style={styles.controlLabel}>Beads:</Text>
+          <View style={styles.themePills}>
+            {(['sandalwood', 'amber', 'gold', 'clay'] as const).map((tKey) => {
+              const active = beadThemeKey === tKey;
+              return (
+                <TouchableOpacity
+                  key={tKey}
+                  style={[
+                    styles.themeDot,
+                    { backgroundColor: BEAD_THEMES[tKey].primary },
+                    active && { borderColor: '#FFFFFF', borderWidth: 1.5 }
+                  ]}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setBeadThemeKey(tKey);
+                    AsyncStorage.setItem('tasbeeh_bead_theme', tKey);
+                  }}
+                />
+              );
+            })}
+          </View>
+        </View>
+
+        <View style={styles.controlGroupRight}>
+          <TouchableOpacity
+            style={styles.iconControlBtn}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setSoundEnabled(!soundEnabled);
+              AsyncStorage.setItem('tasbeeh_sound_enabled', JSON.stringify(!soundEnabled));
+            }}
+          >
+            <Ionicons
+              name={soundEnabled ? 'volume-high-outline' : 'volume-mute-outline'}
+              size={18}
+              color={soundEnabled ? beadTheme.primary : COLORS.text3}
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.hapticCycleBtn, hapticMode === 'off' && styles.hapticCycleBtnOff]}
+            onPress={() => {
+              const modes: ('light' | 'medium' | 'heavy' | 'off')[] = ['light', 'medium', 'heavy', 'off'];
+              const nextIdx = (modes.indexOf(hapticMode) + 1) % modes.length;
+              const nextMode = modes[nextIdx];
+              setHapticMode(nextMode);
+              AsyncStorage.setItem('tasbeeh_haptic_mode', nextMode);
+              
+              if (nextMode !== 'off') {
+                const style = nextMode === 'light' ? Haptics.ImpactFeedbackStyle.Light
+                            : nextMode === 'medium' ? Haptics.ImpactFeedbackStyle.Medium
+                            : Haptics.ImpactFeedbackStyle.Heavy;
+                Haptics.impactAsync(style);
+              }
+            }}
+          >
+            <Ionicons name="finger-print-outline" size={13} color={hapticMode === 'off' ? COLORS.text3 : beadTheme.primary} />
+            <Text style={[styles.hapticModeText, { color: hapticMode === 'off' ? COLORS.text3 : beadTheme.primary }]}>
+              {hapticMode.toUpperCase()}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
       {/* Selector Scrollbar for Dhikr */}
       <View style={styles.dhikrSelectBar}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.dhikrScroll}>
@@ -349,7 +544,7 @@ export default function TasbeehScreen() {
             return (
               <TouchableOpacity
                 key={`${item.name}_${idx}`}
-                style={[styles.dhikrPill, active && styles.dhikrPillActive]}
+                style={[styles.dhikrPill, active && { backgroundColor: beadTheme.primary, borderColor: beadTheme.primary }]}
                 onPress={() => handleSelectDhikr(item, idx)}
               >
                 <Text style={[styles.dhikrPillText, active && styles.dhikrPillTextActive]}>
@@ -386,7 +581,7 @@ export default function TasbeehScreen() {
               cx="120"
               cy="120"
               r={radius}
-              stroke={COLORS.teal}
+              stroke={beadTheme.primary}
               strokeWidth={strokeWidth}
               fill="none"
               strokeDasharray={circumference}
@@ -403,6 +598,7 @@ export default function TasbeehScreen() {
               {
                 opacity: burstOpacity,
                 transform: [{ scale: burstScale }],
+                borderColor: beadTheme.primary,
               },
             ]}
           />
@@ -424,7 +620,7 @@ export default function TasbeehScreen() {
         <Text style={styles.tapInstruction}>Tap anywhere below to increment</Text>
 
         {/* Giant Circle Tap button in center */}
-        <View style={styles.giantCircleBtn}>
+        <View style={[styles.giantCircleBtn, { backgroundColor: beadTheme.primary, shadowColor: beadTheme.primary }]}>
           <Ionicons name="finger-print" size={32} color={COLORS.bg} />
         </View>
       </TouchableOpacity>
@@ -733,15 +929,80 @@ const styles = StyleSheet.create({
     width: 80, // 80px requirement
     height: 80,
     borderRadius: 40,
-    backgroundColor: COLORS.teal,
+    backgroundColor: COLORS.gold,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 20,
-    shadowColor: COLORS.teal,
+    shadowColor: COLORS.gold,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.4,
     shadowRadius: 10,
     elevation: 8,
+  },
+  controlsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderBottomWidth: 0.5,
+    borderBottomColor: 'rgba(255,255,255,0.03)',
+  },
+  controlGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  controlLabel: {
+    fontSize: 11,
+    color: COLORS.text3,
+    marginRight: 8,
+    textTransform: 'uppercase',
+    fontWeight: 'bold',
+  },
+  themePills: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  themeDot: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    marginHorizontal: 4,
+    borderColor: 'transparent',
+    borderWidth: 1.5,
+  },
+  controlGroupRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  iconControlBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    borderWidth: 0.5,
+    borderColor: 'rgba(255,255,255,0.04)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  hapticCycleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    borderWidth: 0.5,
+    borderColor: 'rgba(255,255,255,0.04)',
+  },
+  hapticCycleBtnOff: {
+    backgroundColor: 'rgba(255,255,255,0.01)',
+  },
+  hapticModeText: {
+    fontSize: 9,
+    fontWeight: 'bold',
+    marginLeft: 4,
   },
   statsFooter: {
     flexDirection: 'row',
@@ -817,7 +1078,7 @@ const styles = StyleSheet.create({
   modalBtn: {
     flex: 0.48,
     height: 44,
-    backgroundColor: COLORS.teal,
+    backgroundColor: COLORS.gold,
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',

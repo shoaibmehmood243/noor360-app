@@ -14,20 +14,20 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 
-import { useDuasStore } from '../../../src/store/duasStore';
-import { COLORS } from '../../../constants/theme';
-import Card from '../../../components/ui/Card';
-import ArabicGeometricBg from '../../../components/ui/ArabicGeometricBg';
-import { Dua } from '../../../src/api/client';
-import DuaShareModal from '../../../components/ui/DuaShareModal';
+import { useDuasStore } from '../../src/store/duasStore';
+import { COLORS } from '../../constants/theme';
+import Card from '../../components/ui/Card';
+import ArabicGeometricBg from '../../components/ui/ArabicGeometricBg';
+import { Dua } from '../../src/api/client';
+import DuaShareModal from '../../components/ui/DuaShareModal';
 
 export default function DuaCategoryDetailScreen() {
   const { category } = useLocalSearchParams<{ category: string }>();
   const store = useDuasStore();
-  
+
   const [shareModalVisible, setShareModalVisible] = useState(false);
   const [duaToShare, setDuaToShare] = useState<Dua | null>(null);
-  
+
   // Audio state & Ref
   const [playingDuaId, setPlayingDuaId] = useState<number | null>(null);
   const playerRef = useRef<any>(null);
@@ -115,7 +115,16 @@ export default function DuaCategoryDetailScreen() {
 
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <TouchableOpacity 
+          style={styles.backButton} 
+          onPress={() => {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace('/(tabs)/duas/index');
+            }
+          }}
+        >
           <Ionicons name="arrow-back" size={24} color={COLORS.text} />
         </TouchableOpacity>
         <View style={styles.headerTitleContainer}>
@@ -134,14 +143,14 @@ export default function DuaCategoryDetailScreen() {
           {store.duas.map((item) => {
             const isBookmarked = store.bookmarkedDuaIds.includes(item.id);
             const isPlaying = playingDuaId === item.id;
-            
+
             return (
               <Card key={item.id} style={styles.duaCard}>
                 <View style={styles.duaHeaderBar}>
                   <Text style={styles.duaTitleText}>{item.title}</Text>
-                  
+
                   {/* Play audio button */}
-                  <TouchableOpacity
+                  {/* <TouchableOpacity
                     style={[styles.audioPlayBtn, isPlaying && styles.audioPlayBtnActive]}
                     onPress={() => handlePlayAudio(item)}
                   >
@@ -153,7 +162,7 @@ export default function DuaCategoryDetailScreen() {
                     <Text style={[styles.audioPlayText, isPlaying && { color: COLORS.bg }]}>
                       {isPlaying ? 'Playing' : 'Listen'}
                     </Text>
-                  </TouchableOpacity>
+                  </TouchableOpacity> */}
                 </View>
 
                 {/* Arabic Script */}
@@ -168,7 +177,7 @@ export default function DuaCategoryDetailScreen() {
                 {/* Actions and Reference row */}
                 <View style={styles.footerRow}>
                   <Text style={styles.refText}>Reference: {item.reference}</Text>
-                  
+
                   <View style={styles.actionButtons}>
                     <TouchableOpacity
                       style={styles.actionIconBtn}

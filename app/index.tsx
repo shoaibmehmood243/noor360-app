@@ -1,12 +1,13 @@
-import React, { useEffect, useRef } from 'react';
-import { StyleSheet, Text, View, Animated, Dimensions } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { StyleSheet, Text, View, Animated, Dimensions, TouchableOpacity, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants/theme';
 import { usePreferencesStore } from '../src/store/usePreferencesStore';
 import ArabicGeometricBg from '../components/ui/ArabicGeometricBg';
 
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function SplashScreen() {
   const router = useRouter();
@@ -19,6 +20,12 @@ export default function SplashScreen() {
   const nameTranslateY = useRef(new Animated.Value(20)).current;
 
   const taglineOpacity = useRef(new Animated.Value(0)).current;
+  const spinValue = useRef(new Animated.Value(0)).current;
+
+  // Initialization states
+  const [status, setStatus] = useState('Starting up...');
+  const [showWarning, setShowWarning] = useState(false);
+  const [errorDetails, setErrorDetails] = useState<string | null>(null);
 
   useEffect(() => {
     // 1. Logo Animation (Fade in + Slide up)
@@ -61,7 +68,16 @@ export default function SplashScreen() {
       }),
     ]).start();
 
-    // 4. Navigation trigger after 2.5s total time
+    // 4. Loading Spinner Loop
+    Animated.loop(
+      Animated.timing(spinValue, {
+        toValue: 1,
+        duration: 1800,
+        useNativeDriver: true,
+      })
+    ).start();
+
+    // 5. Navigation trigger after 2.5s total time
     const timer = setTimeout(() => {
       checkOnboardingAndNavigate();
     }, 2500);
@@ -69,23 +85,94 @@ export default function SplashScreen() {
     return () => clearTimeout(timer);
   }, []);
 
+  const spin = spinValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
+
   const checkOnboardingAndNavigate = async () => {
     try {
-      // Bootstrap preferences from cache + background SWR fetch
+      setStatus('Loading local database...');
       const prefs = usePreferencesStore.getState();
-      await prefs.loadAllPreferences().catch((e) => console.warn('Store preload failed:', e));
+      await prefs.loadAllPreferences().catch((e) => {
+        console.warn('Store preload failed (offline fallback active):', e);
+      });
 
+      setStatus('Syncing user profile...');
       const onboardingComplete = await AsyncStorage.getItem('onboarding_complete');
-      if (onboardingComplete === 'true') {
-        router.replace('/(tabs)/home');
-      } else {
-        router.replace('/onboarding');
-      }
-    } catch (error) {
-      console.warn('Failed to read onboarding state, defaulting to onboarding:', error);
-      router.replace('/onboarding');
+
+      // Subtle artificial delay to keep transitions smooth
+      setTimeout(() => {
+        if (onboardingComplete === 'true') {
+          router.replace('/(tabs)/home');
+        } else {
+          router.replace('/onboarding');
+        }
+      }, 500);
+    } catch (error: any) {
+      console.error('Failed to read onboarding state:', error);
+      setErrorDetails(error.message || 'Storage initialization failed.');
+      setShowWarning(true);
     }
   };
+
+  if (showWarning) {
+    return (
+      <View style={styles.container}>
+        <ArabicGeometricBg size={SCREEN_HEIGHT * 0.75} style={styles.bgGeometric} />
+        <View style={styles.errorCard}>
+          <Ionicons name="alert-circle-outline" size={48} color={COLORS.gold} />
+          <Text style={styles.errorTitle}>Startup Recovery</Text>
+          <Text style={styles.errorSubtitle}>
+            An unexpected error occurred while launching Noor360.
+          </Text>
+          {errorDetails && <Text style={styles.errorText}>{errorDetails}</Text>}
+
+          <TouchableOpacity
+            style={styles.retryBtn}
+            onPress={() => {
+              setShowWarning(false);
+              setErrorDetails(null);
+              checkOnboardingAndNavigate();
+            }}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.retryBtnText}>Retry Initialization</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.resetBtn}
+            onPress={async () => {
+              Alert.alert(
+                'Reset App Settings?',
+                'This will clear all bookmarks, logs, and preferences to start fresh.',
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  {
+                    text: 'Reset Settings',
+                    style: 'destructive',
+                    onPress: async () => {
+                      try {
+                        await AsyncStorage.clear();
+                        setShowWarning(false);
+                        setErrorDetails(null);
+                        checkOnboardingAndNavigate();
+                      } catch (e) {
+                        Alert.alert('Reset Failed', 'Could not clear preferences.');
+                      }
+                    }
+                  }
+                ]
+              );
+            }}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.resetBtnText}>Reset Application Settings</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -124,6 +211,24 @@ export default function SplashScreen() {
         {/* Animated Tagline */}
         <Animated.Text style={[styles.tagline, { opacity: taglineOpacity }]}>
           Your Spiritual Quranic Companion
+        </Animated.Text>
+
+        {/* Rotating Loading Animation */}
+        <Animated.View 
+          style={[
+            styles.spinnerWrapper,
+            {
+              opacity: taglineOpacity,
+              transform: [{ rotate: spin }],
+            }
+          ]}
+        >
+          <Ionicons name="sync-outline" size={24} color={COLORS.gold} />
+        </Animated.View>
+
+        {/* Dynamic Status Text */}
+        <Animated.Text style={[styles.statusText, { opacity: taglineOpacity }]}>
+          {status}
         </Animated.Text>
       </View>
     </View>
@@ -189,5 +294,79 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
     textAlign: 'center',
     marginTop: 4,
+  },
+  spinnerWrapper: {
+    marginTop: 32,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  statusText: {
+    marginTop: 12,
+    fontSize: 12,
+    color: COLORS.text3,
+    fontWeight: 'bold',
+    letterSpacing: 0.5,
+  },
+  errorCard: {
+    width: SCREEN_WIDTH * 0.85,
+    backgroundColor: COLORS.bg2,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(201, 168, 76, 0.25)',
+    padding: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  errorTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLORS.gold,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  errorSubtitle: {
+    fontSize: 13,
+    color: COLORS.text2,
+    textAlign: 'center',
+    lineHeight: 18,
+    marginBottom: 16,
+  },
+  errorText: {
+    fontSize: 11,
+    fontFamily: 'monospace',
+    backgroundColor: 'rgba(0,0,0,0.2)',
+    color: '#FF8A8A',
+    padding: 10,
+    borderRadius: 8,
+    width: '100%',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  retryBtn: {
+    backgroundColor: COLORS.gold,
+    width: '100%',
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  retryBtnText: {
+    color: '#0A0E1A',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  resetBtn: {
+    paddingVertical: 8,
+  },
+  resetBtnText: {
+    color: COLORS.text3,
+    fontSize: 12,
+    fontWeight: 'bold',
   },
 });

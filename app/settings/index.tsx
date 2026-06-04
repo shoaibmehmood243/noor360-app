@@ -27,6 +27,7 @@ import { useThemeContext } from '../../src/context/ThemeContext';
 import { COLORS } from '../../constants/theme';
 import client, { getOrCreateDeviceId, getBookmarks } from '../../src/api/client';
 import ArabicGeometricBg from '../../components/ui/ArabicGeometricBg';
+import { getOfflineStorageSize, clearAllOfflineAudio } from '../../src/services/quranOfflineManager';
 const LANGUAGES = [
   { code: 'en', name: 'English', flag: '🇬🇧' },
   { code: 'ur', name: 'اردو', flag: '🇵🇰' },
@@ -75,6 +76,48 @@ export default function SettingsScreen() {
   const [reciters, setReciters] = useState<{ identifier: string; englishName: string; name?: string }[]>(TARGET_RECITERS);
   const [loadingTranslations, setLoadingTranslations] = useState(false);
   const [updating, setUpdating] = useState(false);
+
+  const [offlineAudioSize, setOfflineAudioSize] = useState<number>(0);
+
+  const loadOfflineSize = async () => {
+    try {
+      const sizeBytes = await getOfflineStorageSize();
+      const sizeMB = parseFloat((sizeBytes / (1024 * 1024)).toFixed(1));
+      setOfflineAudioSize(sizeMB);
+    } catch (e) {
+      console.warn('Failed to read offline audio size:', e);
+    }
+  };
+
+  useEffect(() => {
+    loadOfflineSize();
+  }, []);
+
+  const handleClearOfflineAudio = () => {
+    Alert.alert(
+      'Clear Offline Audio',
+      'Are you sure you want to delete all downloaded Quran verse audio files from your device? This will free up storage space.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear All',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setUpdating(true);
+              await clearAllOfflineAudio();
+              await loadOfflineSize();
+              Alert.alert('Cleared', 'All offline Quran audio files have been deleted.');
+            } catch (e: any) {
+              Alert.alert('Error', e.message || 'Could not delete offline files.');
+            } finally {
+              setUpdating(false);
+            }
+          }
+        }
+      ]
+    );
+  };
 
   // Fetch dynamic translations based on active language choice
   useEffect(() => {
@@ -231,7 +274,16 @@ export default function SettingsScreen() {
 
       {/* Sticky Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={() => {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace('/(tabs)/home');
+            }
+          }}
+        >
           <Ionicons name="chevron-back" size={24} color={COLORS.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Noor Settings</Text>
@@ -508,7 +560,7 @@ export default function SettingsScreen() {
             {/* Notification settings link */}
             <TouchableOpacity
               style={styles.linkButton}
-              onPress={() => router.push('/(tabs)/prayer/notifications')}
+              onPress={() => router.push('/prayer/notifications')}
             >
               <View>
                 <Text style={styles.toggleLabel}>Configure Adhan Notifications</Text>
@@ -604,6 +656,28 @@ export default function SettingsScreen() {
               </View>
               <Ionicons name="share-social-outline" size={18} color={COLORS.gold} />
             </TouchableOpacity>
+
+            <View style={styles.divider} />
+
+            {/* Offline Audio Storage Control */}
+            <View style={styles.offlineStorageRow}>
+              <View style={{ flex: 1, marginRight: 12 }}>
+                <Text style={styles.toggleLabel}>Offline Quran Audio Storage</Text>
+                <Text style={styles.subtext}>
+                  {offlineAudioSize > 0
+                    ? `Occupying ${offlineAudioSize} MB of local device storage`
+                    : 'No downloaded audio files'}
+                </Text>
+              </View>
+              {offlineAudioSize > 0 && (
+                <TouchableOpacity
+                  style={styles.clearDownloadsBtn}
+                  onPress={handleClearOfflineAudio}
+                >
+                  <Text style={styles.clearDownloadsBtnText}>Clear All</Text>
+                </TouchableOpacity>
+              )}
+            </View>
 
             <View style={styles.divider} />
 
@@ -937,7 +1011,7 @@ const styles = StyleSheet.create({
   usageCount: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: COLORS.teal,
+    color: COLORS.gold,
   },
   progressBarBg: {
     height: 6,
@@ -949,7 +1023,7 @@ const styles = StyleSheet.create({
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: COLORS.teal,
+    backgroundColor: COLORS.gold,
     borderRadius: 3,
   },
   aboutRow: {
@@ -967,5 +1041,23 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: 'bold',
     color: COLORS.text,
+  },
+  offlineStorageRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  clearDownloadsBtn: {
+    backgroundColor: 'rgba(239, 68, 68, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  clearDownloadsBtnText: {
+    color: '#EF4444',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
 });

@@ -19,6 +19,7 @@ import { useRouter } from 'expo-router';
 import { usePrayer } from '../../src/hooks/usePrayer';
 import { useTrackerStore, DayRecord, PrayerStatus } from '../../src/store/trackerStore';
 import { useQuranStore } from '../../src/store/quranStore';
+import { usePreferencesStore } from '../../src/store/usePreferencesStore';
 import { COLORS } from '../../constants/theme';
 import ArabicGeometricBg from '../../components/ui/ArabicGeometricBg';
 import { useThemeContext } from '../../src/context/ThemeContext';
@@ -101,6 +102,7 @@ export default function HomeScreen() {
   const duasStore = useDuasStore();
 
   const { theme } = useThemeContext();
+  const { language } = usePreferencesStore();
   const isDark = theme === 'dark';
 
   const heroGradient = isDark
@@ -310,6 +312,12 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
+      <LinearGradient
+        colors={isDark ? ['#0C101B', '#06080E'] : ['#FFFFFF', '#FAF8F3']}
+        style={StyleSheet.absoluteFillObject}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      />
       <ArabicGeometricBg size={width * 0.95} style={styles.bgGeometric} />
 
       <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -350,7 +358,7 @@ export default function HomeScreen() {
               <View>
                 <Text style={styles.hijriText}>
                   {prayerStore.hijriDate
-                    ? `${prayerStore.hijriDate.day} ${prayerStore.hijriDate.month.en} ${prayerStore.hijriDate.year} AH`
+                    ? `${prayerStore.hijriDate.day} ${prayerStore.hijriDate.month.ar} ${prayerStore.hijriDate.year} AH`
                     : 'Loading Hijri Date...'}
                 </Text>
                 <Text style={styles.gregorianText}>
@@ -621,52 +629,64 @@ export default function HomeScreen() {
           {loadingHadith ? (
             <SkeletonLoader width="100%" height={160} borderRadius={20} style={{ marginBottom: 12 }} />
           ) : (
-            <Card style={styles.inspirationCard}>
-              <View style={styles.inspirationHeader}>
-                <View style={styles.badgeRow}>
-                  <View style={[styles.inspirationBadge, { backgroundColor: 'rgba(45,212,191,0.15)' }]}>
-                    <Text style={[styles.inspirationBadgeText, { color: COLORS.teal }]}>HADITH OF THE DAY</Text>
+            (() => {
+              const isUrdu = language === 'ur';
+              const translationText = (isUrdu && hadithOfDay.hadithUrdu) ? hadithOfDay.hadithUrdu : hadithOfDay.hadithEnglish;
+              const narratorText = (isUrdu && hadithOfDay.urduNarrator) ? hadithOfDay.urduNarrator : hadithOfDay.englishNarrator;
+              return (
+                <Card style={styles.inspirationCard}>
+                  <View style={styles.inspirationHeader}>
+                    <View style={styles.badgeRow}>
+                      <View style={[styles.inspirationBadge]}>
+                        <Text style={[styles.inspirationBadgeText]}>HADITH OF THE DAY</Text>
+                      </View>
+                    </View>
+                    <View style={styles.actionIconsRow}>
+                      <TouchableOpacity
+                        onPress={() => handleShareText(
+                          'Hadith of the Day',
+                          hadithOfDay.hadithArabic,
+                          translationText,
+                          `${getThemeMeta(hadithOfDay.book || hadithOfDay.bookName).name} #${hadithOfDay.hadithNumber}`
+                        )}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                        activeOpacity={0.6}
+                      >
+                        <Ionicons name="share-social-outline" size={18} color={COLORS.text2} />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() => handleShareImage({
+                          title: 'Hadith of the Day',
+                          arabic: hadithOfDay.hadithArabic,
+                          translation: translationText,
+                          reference: `${getThemeMeta(hadithOfDay.book || hadithOfDay.bookName).name} #${hadithOfDay.hadithNumber}`,
+                          contentType: 'hadith'
+                        })}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                        activeOpacity={0.6}
+                        style={{ marginLeft: 14 }}
+                      >
+                        <Ionicons name="image-outline" size={18} color={COLORS.text2} />
+                      </TouchableOpacity>
+                    </View>
                   </View>
-                </View>
-                <View style={styles.actionIconsRow}>
-                  <TouchableOpacity
-                    onPress={() => handleShareText(
-                      'Hadith of the Day',
-                      hadithOfDay.hadithArabic,
-                      hadithOfDay.hadithEnglish,
-                      `${getThemeMeta(hadithOfDay.book || hadithOfDay.bookName).name} #${hadithOfDay.hadithNumber}`
-                    )}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                    activeOpacity={0.6}
-                  >
-                    <Ionicons name="share-social-outline" size={18} color={COLORS.text2} />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => handleShareImage({
-                      title: 'Hadith of the Day',
-                      arabic: hadithOfDay.hadithArabic,
-                      translation: hadithOfDay.hadithEnglish,
-                      reference: `${getThemeMeta(hadithOfDay.book || hadithOfDay.bookName).name} #${hadithOfDay.hadithNumber}`,
-                      contentType: 'hadith'
-                    })}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                    activeOpacity={0.6}
-                    style={{ marginLeft: 14 }}
-                  >
-                    <Ionicons name="image-outline" size={18} color={COLORS.text2} />
-                  </TouchableOpacity>
-                </View>
-              </View>
-              <Text style={styles.arabicInspirationText}>
-                {hadithOfDay.hadithArabic}
-              </Text>
-              <Text style={styles.translationInspirationText}>
-                "{hadithOfDay.hadithEnglish}"
-              </Text>
-              <Text style={styles.inspirationSource}>
-                {getThemeMeta(hadithOfDay.book || hadithOfDay.bookName).name} (Hadith {hadithOfDay.hadithNumber})
-              </Text>
-            </Card>
+                  <Text style={styles.arabicInspirationText}>
+                    {hadithOfDay.hadithArabic}
+                  </Text>
+                  {narratorText ? (
+                    <Text style={[styles.narratorText, isUrdu && styles.rtlText]}>
+                      {narratorText}
+                    </Text>
+                  ) : null}
+                  <Text style={[styles.translationInspirationText, isUrdu && styles.rtlText, isUrdu && styles.urduScript]}>
+                    "{translationText}"
+                  </Text>
+                  <Text style={[styles.inspirationSource, isUrdu && styles.rtlTextSource]}>
+                    {getThemeMeta(hadithOfDay.book || hadithOfDay.bookName).name} (Hadith {hadithOfDay.hadithNumber})
+                  </Text>
+                </Card>
+              );
+            })()
           )}
 
           {/* Dua of the Day */}
@@ -1088,7 +1108,7 @@ const styles = StyleSheet.create({
   arabicInspirationText: {
     fontSize: 22,
     fontFamily: 'Amiri_700Bold',
-    color: COLORS.text,
+    color: COLORS.gold,
     textAlign: 'center',
     marginVertical: 12,
     lineHeight: 34,
@@ -1099,6 +1119,26 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 18,
     fontStyle: 'italic',
+  },
+  narratorText: {
+    fontSize: 12,
+    color: COLORS.gold,
+    fontWeight: '600',
+    fontStyle: 'italic',
+    marginBottom: 6,
+    lineHeight: 18,
+    textAlign: 'center',
+  },
+  rtlText: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  urduScript: {
+    fontSize: 15,
+    lineHeight: 24,
+  },
+  rtlTextSource: {
+    textAlign: 'left',
   },
   inspirationSource: {
     fontSize: 10,

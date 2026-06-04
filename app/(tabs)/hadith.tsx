@@ -14,9 +14,12 @@ import { useRouter } from 'expo-router';
 import { useIsFocused } from '@react-navigation/native';
 
 import { useHadith } from '../../src/hooks/useHadith';
+import { usePreferencesStore } from '../../src/store/usePreferencesStore';
 import DuaShareModal, { ShareData } from '../../components/ui/DuaShareModal';
 import { getHadithOfDay } from '../../src/api/client';
 import { COLORS } from '../../constants/theme';
+import { useThemeContext } from '../../src/context/ThemeContext';
+import { LinearGradient } from 'expo-linear-gradient';
 import AppHeader from '../../components/AppHeader';
 import Card from '../../components/ui/Card';
 import GoldBadge from '../../components/ui/GoldBadge';
@@ -34,67 +37,67 @@ const BOOK_METADATA: Array<{
   accent: string;
   icon: string;
 }> = [
-  {
-    slug: 'sahih-bukhari',
-    name: 'Sahih Al-Bukhari',
-    arabicName: 'صحيح البخاري',
-    desc: 'The most authentic compilation of Hadith, compiled by Imam Al-Bukhari.',
-    hadithCount: '7,563',
-    chapterCount: '97',
-    accent: '#C9A84C',
-    icon: 'book',
-  },
-  {
-    slug: 'sahih-muslim',
-    name: 'Sahih Muslim',
-    arabicName: 'صحيح مسلم',
-    desc: 'Considered the second most authentic collection, compiled by Imam Muslim.',
-    hadithCount: '7,500',
-    chapterCount: '56',
-    accent: '#2DD4BF',
-    icon: 'shield-checkmark',
-  },
-  {
-    slug: 'sunan-abi-dawud',
-    name: 'Sunan Abi Dawud',
-    arabicName: 'سنن أبي داود',
-    desc: 'Focuses primarily on legal traditions (Ahkam), compiled by Imam Abu Dawud.',
-    hadithCount: '5,274',
-    chapterCount: '43',
-    accent: '#3B82F6',
-    icon: 'ribbon',
-  },
-  {
-    slug: 'jami-al-tirmidhi',
-    name: 'Jami Al-Tirmidhi',
-    arabicName: 'جامع الترمذي',
-    desc: 'Famous for its commentary on legal rulings, compiled by Imam Al-Tirmidhi.',
-    hadithCount: '4,400',
-    chapterCount: '49',
-    accent: '#EC4899',
-    icon: 'star',
-  },
-  {
-    slug: 'sunan-an-nasai',
-    name: "Sunan An-Nasa'i",
-    arabicName: 'سنن النسائي',
-    desc: "Famous for its high standards of critique, compiled by Imam An-Nasa'i.",
-    hadithCount: '5,758',
-    chapterCount: '51',
-    accent: '#F59E0B',
-    icon: 'bookmark',
-  },
-  {
-    slug: 'sunan-ibn-majah',
-    name: 'Sunan Ibn Majah',
-    arabicName: 'سنن ابن ماجه',
-    desc: 'One of the six major Hadith collections, compiled by Imam Ibn Majah.',
-    hadithCount: '4,341',
-    chapterCount: '37',
-    accent: '#8B5CF6',
-    icon: 'heart',
-  },
-];
+    {
+      slug: 'sahih-bukhari',
+      name: 'Sahih Al-Bukhari',
+      arabicName: 'صحيح البخاري',
+      desc: 'The most authentic compilation of Hadith, compiled by Imam Al-Bukhari.',
+      hadithCount: '7,563',
+      chapterCount: '97',
+      accent: '#C9A84C',
+      icon: 'book',
+    },
+    {
+      slug: 'sahih-muslim',
+      name: 'Sahih Muslim',
+      arabicName: 'صحيح مسلم',
+      desc: 'Considered the second most authentic collection, compiled by Imam Muslim.',
+      hadithCount: '7,500',
+      chapterCount: '56',
+      accent: '#2DD4BF',
+      icon: 'shield-checkmark',
+    },
+    {
+      slug: 'sunan-abi-dawud',
+      name: 'Sunan Abi Dawud',
+      arabicName: 'سنن أبي داود',
+      desc: 'Focuses primarily on legal traditions (Ahkam), compiled by Imam Abu Dawud.',
+      hadithCount: '5,274',
+      chapterCount: '43',
+      accent: '#3B82F6',
+      icon: 'ribbon',
+    },
+    {
+      slug: 'jami-al-tirmidhi',
+      name: 'Jami Al-Tirmidhi',
+      arabicName: 'جامع الترمذي',
+      desc: 'Famous for its commentary on legal rulings, compiled by Imam Al-Tirmidhi.',
+      hadithCount: '4,400',
+      chapterCount: '49',
+      accent: '#EC4899',
+      icon: 'star',
+    },
+    {
+      slug: 'sunan-an-nasai',
+      name: "Sunan An-Nasa'i",
+      arabicName: 'سنن النسائي',
+      desc: "Famous for its high standards of critique, compiled by Imam An-Nasa'i.",
+      hadithCount: '5,758',
+      chapterCount: '51',
+      accent: '#F59E0B',
+      icon: 'bookmark',
+    },
+    {
+      slug: 'sunan-ibn-majah',
+      name: 'Sunan Ibn Majah',
+      arabicName: 'سنن ابن ماجه',
+      desc: 'One of the six major Hadith collections, compiled by Imam Ibn Majah.',
+      hadithCount: '4,341',
+      chapterCount: '37',
+      accent: '#8B5CF6',
+      icon: 'heart',
+    },
+  ];
 
 const getThemeMeta = (bookKey: string) => {
   const normalized = (bookKey || '').toLowerCase().replace(/_/g, '-');
@@ -116,6 +119,9 @@ const getThemeMeta = (bookKey: string) => {
 };
 
 export default function HadithTabScreen() {
+  const { theme } = useThemeContext();
+  const isDark = theme === 'dark';
+
   const router = useRouter();
   const isFocused = useIsFocused();
   const [hasRendered, setHasRendered] = useState(false);
@@ -128,6 +134,7 @@ export default function HadithTabScreen() {
   }, [isFocused, hasRendered]);
 
   const hadithStore = useHadith();
+  const { language } = usePreferencesStore();
 
   // Local states
   const [hadithOfDay, setHadithOfDay] = useState<any | null>(null);
@@ -207,10 +214,12 @@ export default function HadithTabScreen() {
 
   const handleShareHadith = (item: any) => {
     const themeMeta = getThemeMeta(item.book || item.bookName);
+    const isUrdu = language === 'ur';
+    const translationText = (isUrdu && item.hadithUrdu) ? item.hadithUrdu : item.hadithEnglish;
     setHadithToShare({
       title: 'Prophetic Guidance',
       arabic: item.hadithArabic,
-      translation: item.hadithEnglish,
+      translation: translationText,
       reference: `${themeMeta.name} #${item.hadithNumber}`,
       contentType: 'hadith',
     });
@@ -231,6 +240,12 @@ export default function HadithTabScreen() {
   if (!hasRendered) {
     return (
       <SafeAreaView style={styles.container}>
+        <LinearGradient
+          colors={isDark ? ['#0C101B', '#06080E'] : ['#FFFFFF', '#FAF8F3']}
+          style={StyleSheet.absoluteFillObject}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={COLORS.gold} />
         </View>
@@ -242,6 +257,12 @@ export default function HadithTabScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right']}>
+      <LinearGradient
+        colors={isDark ? ['#0C101B', '#06080E'] : ['#FFFFFF', '#FAF8F3']}
+        style={StyleSheet.absoluteFillObject}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      />
       {/* Brand Header */}
       <AppHeader onSettingsPress={() => router.push('/settings')} />
 
@@ -263,17 +284,20 @@ export default function HadithTabScreen() {
                 isBookmarked={isBookmarked}
                 isCurrentlyNarrating={isCurrentlyNarrating}
                 isNarrating={isNarrating}
+                language={language}
                 onTriggerNarration={handleTriggerNarration}
                 onToggleBookmark={async () => {
                   const refId = `${item.book || item.bookName}:${item.hadithNumber}`;
                   if (isBookmarked) {
                     await hadithStore.removeBookmark(refId);
                   } else {
+                    const isUrdu = language === 'ur';
+                    const translationText = (isUrdu && item.hadithUrdu) ? item.hadithUrdu : item.hadithEnglish;
                     await hadithStore.addBookmark({
                       type: 'hadith',
                       refId,
                       arabicText: item.hadithArabic,
-                      translation: item.hadithEnglish,
+                      translation: translationText,
                       reference: `${themeMeta.name} #${item.hadithNumber}`,
                     });
                   }
@@ -330,7 +354,18 @@ export default function HadithTabScreen() {
                       <Text style={styles.dailyNumber}>#{hadithOfDay.hadithNumber}</Text>
                     </View>
                     <ArabicText text={hadithOfDay.hadithArabic} size={18} style={styles.dailyArabic} />
-                    <Text style={styles.dailyEnglish}>{hadithOfDay.hadithEnglish}</Text>
+                    {((language === 'ur') && hadithOfDay.urduNarrator) ? (
+                      <Text style={[styles.dailyEnglish, styles.dailyNarrator, styles.rtlText]}>
+                        {hadithOfDay.urduNarrator}
+                      </Text>
+                    ) : hadithOfDay.englishNarrator ? (
+                      <Text style={[styles.dailyEnglish, styles.dailyNarrator]}>
+                        {hadithOfDay.englishNarrator}
+                      </Text>
+                    ) : null}
+                    <Text style={[styles.dailyEnglish, (language === 'ur') && styles.rtlText, (language === 'ur') && styles.urduScript]}>
+                      {((language === 'ur') && hadithOfDay.hadithUrdu) ? hadithOfDay.hadithUrdu : hadithOfDay.hadithEnglish}
+                    </Text>
                   </Card>
                 ) : null}
               </>
@@ -445,6 +480,7 @@ interface HadithItemProps {
   isBookmarked: boolean;
   isCurrentlyNarrating: boolean;
   isNarrating: boolean;
+  language: string;
   onTriggerNarration: (item: any) => void;
   onToggleBookmark: () => Promise<void>;
   onCreateNote: (item: any) => void;
@@ -457,11 +493,16 @@ const HadithItem = React.memo<HadithItemProps>(({
   isBookmarked,
   isCurrentlyNarrating,
   isNarrating,
+  language,
   onTriggerNarration,
   onToggleBookmark,
   onCreateNote,
   onShare,
 }) => {
+  const isUrdu = language === 'ur';
+  const narratorText = (isUrdu && item.urduNarrator) ? item.urduNarrator : item.englishNarrator;
+  const translationText = (isUrdu && item.hadithUrdu) ? item.hadithUrdu : item.hadithEnglish;
+
   return (
     <Card style={[styles.hadithCard, isCurrentlyNarrating && styles.hadithCardNarrating]}>
       <View style={styles.cardHeader}>
@@ -473,7 +514,16 @@ const HadithItem = React.memo<HadithItemProps>(({
       </View>
 
       <ArabicText text={item.hadithArabic} size={18} style={styles.arabicScript} />
-      <Text style={styles.englishScript}>{item.hadithEnglish}</Text>
+
+      {narratorText ? (
+        <Text style={[styles.narratorText, isUrdu && styles.rtlText]}>
+          {narratorText}
+        </Text>
+      ) : null}
+
+      <Text style={[styles.translationText, isUrdu && styles.rtlText, isUrdu && styles.urduScript]}>
+        {translationText}
+      </Text>
 
       <View style={styles.actionTray}>
         <TouchableOpacity
@@ -529,7 +579,8 @@ const HadithItem = React.memo<HadithItemProps>(({
     prev.isBookmarked === next.isBookmarked &&
     prev.isCurrentlyNarrating === next.isCurrentlyNarrating &&
     prev.isNarrating === next.isNarrating &&
-    prev.themeMeta.text === next.themeMeta.text
+    prev.themeMeta.text === next.themeMeta.text &&
+    prev.language === next.language
   );
 });
 
@@ -729,11 +780,32 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     marginBottom: 12,
   },
-  englishScript: {
+  narratorText: {
+    fontSize: 12,
+    color: COLORS.gold,
+    fontWeight: '600',
+    fontStyle: 'italic',
+    marginBottom: 6,
+    lineHeight: 18,
+  },
+  dailyNarrator: {
+    fontWeight: '600',
+    color: COLORS.gold,
+    marginBottom: 6,
+  },
+  translationText: {
     fontSize: 13,
     color: COLORS.text2,
     lineHeight: 19,
     textAlign: 'left',
+  },
+  rtlText: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  urduScript: {
+    fontSize: 15,
+    lineHeight: 24,
   },
   actionTray: {
     flexDirection: 'row',

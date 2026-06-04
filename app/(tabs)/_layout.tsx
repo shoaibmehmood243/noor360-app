@@ -101,48 +101,6 @@ export default function TabsLayout() {
           href: null,
         }}
       />
-      <Tabs.Screen
-        name="prayer/qibla"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="prayer/tracker"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="prayer/notifications"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="duas/[category]"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="duas/tasbeeh"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="duas/names"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="duas/bookmarks"
-        options={{
-          href: null,
-        }}
-      />
     </Tabs>
   );
 }

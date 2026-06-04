@@ -5,6 +5,16 @@ import { saveUserPreferences } from '../api/client';
 
 const CATEGORY_PRAYER = 'prayer-notification';
 
+const addMinutesToTime = (timeStr: string, minutesToAdd: number) => {
+  const cleanTime = timeStr.split(' ')[0];
+  const [hours, minutes] = cleanTime.split(':').map(Number);
+  let totalMinutes = hours * 60 + minutes + minutesToAdd;
+  if (totalMinutes < 0) totalMinutes += 24 * 60;
+  const newHours = Math.floor(totalMinutes / 60) % 24;
+  const newMinutes = totalMinutes % 60;
+  return { hour: newHours, minute: newMinutes };
+};
+
 // Set up foreground notification configuration
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -157,6 +167,78 @@ export const schedulePrayerNotifications = async (
         },
         trigger,
       });
+
+      // 4a-1. Log Status Reminder: 30 minutes after prayer
+      const trackerTime = addMinutesToTime(prayer.time, 30);
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: `Salah Tracker: ${prayer.name} Log 🕌`,
+          body: `Did you pray ${prayer.name}? Tap here to log your prayer status and keep your streak active!`,
+          sound: 'default',
+          data: {
+            actionRoute: '/(tabs)/prayer/tracker',
+          },
+        },
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.DAILY,
+          hour: trackerTime.hour,
+          minute: trackerTime.minute,
+        },
+      });
+
+      // 4a-2. Quran / Surah reminders
+      if (prayer.name === 'Fajr') {
+        const yaseenTime = addMinutesToTime(prayer.time, 45);
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: '📖 Read Surah Yaseen after Fajr',
+            body: 'Benefit: The heart of the Quran. Whoever recites it after Fajr, their needs for the day will be fulfilled.',
+            sound: 'default',
+            data: {
+              actionRoute: '/quran/36',
+            },
+          },
+          trigger: {
+            type: Notifications.SchedulableTriggerInputTypes.DAILY,
+            hour: yaseenTime.hour,
+            minute: yaseenTime.minute,
+          },
+        });
+      } else if (prayer.name === 'Maghrib') {
+        const waqiahTime = addMinutesToTime(prayer.time, 45);
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: '💰 Read Surah Al-Waqiah after Maghrib',
+            body: 'Benefit: The Surah of Wealth. Recite Al-Waqiah after Maghrib or at night to ward off poverty and secure Rizq.',
+            sound: 'default',
+            data: {
+              actionRoute: '/quran/56',
+            },
+          },
+          trigger: {
+            type: Notifications.SchedulableTriggerInputTypes.DAILY,
+            hour: waqiahTime.hour,
+            minute: waqiahTime.minute,
+          },
+        });
+      } else if (prayer.name === 'Isha') {
+        const mulkTime = addMinutesToTime(prayer.time, 45);
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: '🛡️ Read Surah Al-Mulk after Isha',
+            body: 'Benefit: Saving from Hellfire. Intercedes for its reciter and protects from the punishment of the grave.',
+            sound: 'default',
+            data: {
+              actionRoute: '/quran/67',
+            },
+          },
+          trigger: {
+            type: Notifications.SchedulableTriggerInputTypes.DAILY,
+            hour: mulkTime.hour,
+            minute: mulkTime.minute,
+          },
+        });
+      }
     }
 
     // 4b. Schedule Morning Adhkar Reminder if enabled

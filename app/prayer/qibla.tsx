@@ -16,13 +16,18 @@ import Svg, { Circle, Line, Polygon, Path, G, Text as SvgText } from 'react-nati
 import { Magnetometer } from 'expo-sensors';
 import * as Haptics from 'expo-haptics';
 
-import { usePrayerStore } from '../../../src/store/prayerStore';
-import { getQiblaBearing } from '../../../src/api/client';
-import { COLORS } from '../../../constants/theme';
-import ArabicGeometricBg from '../../../components/ui/ArabicGeometricBg';
-import Card from '../../../components/ui/Card';
+import { usePrayerStore } from '../../src/store/prayerStore';
+import { getQiblaBearing } from '../../src/api/client';
+import { COLORS } from '../../constants/theme';
+import { useThemeContext } from '../../src/context/ThemeContext';
+import { LinearGradient } from 'expo-linear-gradient';
+import ArabicGeometricBg from '../../components/ui/ArabicGeometricBg';
+import Card from '../../components/ui/Card';
 
 export default function QiblaCompassScreen() {
+  const { theme } = useThemeContext();
+  const isDark = theme === 'dark';
+
   const prayerStore = usePrayerStore();
   const { lat, lon, city } = prayerStore.location;
 
@@ -40,6 +45,11 @@ export default function QiblaCompassScreen() {
   const compassAnim = useRef(new Animated.Value(0)).current;
   const arrowAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  // Smoothing filters for sensor jitter
+  const lastX = useRef(0);
+  const lastY = useRef(0);
+  const lastZ = useRef(0);
 
   // Fetch Qibla bearing from backend using coordinates
   useEffect(() => {
@@ -88,10 +98,24 @@ export default function QiblaCompassScreen() {
   }, []);
 
   const subscribeSensor = () => {
-    Magnetometer.setUpdateInterval(100); // 100ms updates
+    Magnetometer.setUpdateInterval(50); // Increase update rate to 50ms for high responsiveness
     const sub = Magnetometer.addListener((data: any) => {
-      setMagnetometerData(data);
-      // Accuracy tracking if provided by the device API (fallback to high if undefined)
+      // Exponential moving average filter (alpha = 0.15) for buttery-smooth rotation
+      const alpha = 0.15;
+      
+      // Initialize if zero
+      if (lastX.current === 0 && lastY.current === 0) {
+        lastX.current = data.x;
+        lastY.current = data.y;
+        lastZ.current = data.z;
+      } else {
+        lastX.current = alpha * data.x + (1 - alpha) * lastX.current;
+        lastY.current = alpha * data.y + (1 - alpha) * lastY.current;
+        lastZ.current = alpha * data.z + (1 - alpha) * lastZ.current;
+      }
+
+      setMagnetometerData({ x: lastX.current, y: lastY.current, z: lastZ.current });
+      
       if (data.accuracy !== undefined) {
         setSensorAccuracy(data.accuracy);
       }
@@ -187,14 +211,23 @@ export default function QiblaCompassScreen() {
 
   // Trigger haptic feedback when device aligns with Qibla
   useEffect(() => {
+    let intervalId: any = null;
     if (isAligned) {
       if (!wasAligned.current) {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
         wasAligned.current = true;
       }
+      // Simulate continuous magnetic lock feel with minor ticks
+      intervalId = setInterval(() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+      }, 700);
     } else {
       wasAligned.current = false;
     }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
   }, [isAligned]);
 
   const getDirectionLabel = (deg: number) => {
@@ -208,13 +241,28 @@ export default function QiblaCompassScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right', 'top']}>
+      <LinearGradient
+        colors={isDark ? ['#0C101B', '#06080E'] : ['#FFFFFF', '#FAF8F3']}
+        style={StyleSheet.absoluteFillObject}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      />
       {/* Arabic Geometric Overlay Background */}
       <ArabicGeometricBg size={400} style={styles.backgroundOverlay} />
 
       {/* Screen Header Segment */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+        <TouchableOpacity 
+          style={styles.backButton} 
+          onPress={() => {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace('/(tabs)/prayer');
+            }
+          }}
+        >
+          <Ionicons name="arrow-back" size={24} color={COLORS.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Qibla Finder</Text>
         <View style={{ width: 40 }} /> {/* Spacer */}
@@ -319,7 +367,7 @@ export default function QiblaCompassScreen() {
                 {/* Elegant Kaaba Shape Pointer pointer arrow */}
                 <Polygon
                   points="50,14 42,28 50,24 58,28"
-                  fill={isAligned ? COLORS.teal : COLORS.gold}
+                  fill={isAligned ? COLORS.gold2 : COLORS.gold}
                 />
 
                 {/* Visual Connector Line */}
@@ -328,7 +376,7 @@ export default function QiblaCompassScreen() {
                   y1="24"
                   x2="50"
                   y2="50"
-                  stroke={isAligned ? COLORS.teal : COLORS.gold}
+                  stroke={isAligned ? COLORS.gold2 : COLORS.gold}
                   strokeWidth="1.5"
                 />
 
@@ -336,13 +384,13 @@ export default function QiblaCompassScreen() {
                 <G transform="translate(43, 43)">
                   <Path
                     d="M2 1h10v10H2zm0 3.5h10M2 7h10"
-                    stroke={isAligned ? COLORS.teal : COLORS.gold}
+                    stroke={isAligned ? COLORS.gold2 : COLORS.gold}
                     strokeWidth="1"
                     fill="none"
                   />
                   <Path
                     d="M2 1l2 2v6l-2-2zm10 0l-2 2v6l2-2z"
-                    stroke={isAligned ? COLORS.teal : COLORS.gold}
+                    stroke={isAligned ? COLORS.gold2 : COLORS.gold}
                     strokeWidth="0.8"
                     fill="none"
                   />
@@ -387,7 +435,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.03)',
+    borderBottomColor: COLORS.bg3,
   },
   backButton: {
     width: 40,
@@ -402,7 +450,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: COLORS.text,
   },
   calibrationBanner: {
     backgroundColor: 'rgba(201,168,76,0.1)',
@@ -465,7 +513,7 @@ const styles = StyleSheet.create({
   degreeText: {
     fontSize: 38,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: COLORS.text,
   },
   alignmentStatusLabel: {
     fontSize: 12,
@@ -476,7 +524,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   alignedTextHighlight: {
-    color: COLORS.teal,
+    color: COLORS.gold2,
   },
   compassPlatform: {
     width: 290,
@@ -490,9 +538,9 @@ const styles = StyleSheet.create({
     width: 270,
     height: 270,
     borderRadius: 135,
-    backgroundColor: 'rgba(45,212,191,0.06)',
+    backgroundColor: 'rgba(201,168,76,0.08)',
     borderWidth: 1,
-    borderColor: 'rgba(45,212,191,0.15)',
+    borderColor: 'rgba(201,168,76,0.22)',
   },
   compassRoseWrapper: {
     position: 'absolute',
@@ -500,10 +548,10 @@ const styles = StyleSheet.create({
     height: 280,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#070A12',
+    backgroundColor: COLORS.bg2,
     borderRadius: 140,
     borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.03)',
+    borderColor: COLORS.bg3,
   },
   pointerArrowWrapper: {
     position: 'absolute',
@@ -536,7 +584,7 @@ const styles = StyleSheet.create({
   locationCityValue: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: COLORS.text,
     marginTop: 2,
   },
   coordsValueBox: {

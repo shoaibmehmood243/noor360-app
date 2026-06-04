@@ -1,32 +1,28 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { StyleSheet, Text, View, FlatList, ScrollView, TouchableOpacity, Share, ActivityIndicator, Alert } from 'react-native';
+import { StyleSheet, Text, View, FlatList, ScrollView, TouchableOpacity, Share, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { useQuran } from '../../src/hooks/useQuran';
-import { AudioPlayer } from '../../src/services/audioPlayer';
-import { COLORS } from '../../constants/theme';
-import { useThemeContext } from '../../src/context/ThemeContext';
-import Card from '../../components/ui/Card';
-import GoldBadge from '../../components/ui/GoldBadge';
-import ArabicText from '../../components/ui/ArabicText';
-import AudioPlayerBar from '../../components/AudioPlayerBar';
-import DuaShareModal, { ShareData } from '../../components/ui/DuaShareModal';
-import {
-  isSurahDownloaded,
-  downloadFullSurah,
-  deleteDownloadedSurah,
-  cancelSurahDownload
-} from '../../src/services/quranOfflineManager';
+import { useQuran } from '../../../src/hooks/useQuran';
+import { AudioPlayer } from '../../../src/services/audioPlayer';
+import { COLORS } from '../../../constants/theme';
+import { useThemeContext } from '../../../src/context/ThemeContext';
+import Card from '../../../components/ui/Card';
+import GoldBadge from '../../../components/ui/GoldBadge';
+import ArabicText from '../../../components/ui/ArabicText';
+import AudioPlayerBar from '../../../components/AudioPlayerBar';
+import DuaShareModal, { ShareData } from '../../../components/ui/DuaShareModal';
 
 type ReadingMode = 'Normal' | 'Word-by-word' | '15-line';
 
 
-export default function SurahReaderScreen() {
+export default function JuzReaderScreen() {
   const router = useRouter();
-  const { surahId, highlightVerse } = useLocalSearchParams<{ surahId: string; highlightVerse?: string }>();
-  const surahNum = parseInt(surahId || '1');
+  const { juzId } = useLocalSearchParams<{ juzId: string }>();
+  const juzNum = parseInt(juzId || '1');
 
   const quran = useQuran();
 
@@ -34,13 +30,13 @@ export default function SurahReaderScreen() {
   const flatListRef = useRef<FlatList>(null);
 
   // States
-  const [surahData, setSurahData] = useState<any | null>(null);
+  const [juzData, setJuzData] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [readingMode, setReadingMode] = useState<ReadingMode>('Normal');
   const [scrollProgress, setScrollProgress] = useState(0);
 
   // Global Audio Synced States
-  const [activePlayingVerse, setActivePlayingVerse] = useState<number | null>(null);
+  const [activePlayingVerse, setActivePlayingVerse] = useState<{ surah: number; verse: number } | null>(null);
 
   // Action Sheet / Long Press modal
   const [selectedVerseForAction, setSelectedVerseForAction] = useState<any | null>(null);
@@ -50,149 +46,87 @@ export default function SurahReaderScreen() {
   const [shareModalVisible, setShareModalVisible] = useState(false);
   const [verseToShare, setVerseToShare] = useState<ShareData | null>(null);
 
-  // Offline Playback / Downloads States
-  const [isDownloaded, setIsDownloaded] = useState(false);
-  const [isDownloading, setIsDownloading] = useState(false);
-  const [downloadProgress, setDownloadProgress] = useState(0);
-
   // Mount logic
   useEffect(() => {
-    loadSurahDetails();
-  }, [surahId, quran.selectedTranslation]);
-
-  // Check offline status on data load or change
-  const checkOfflineStatus = async () => {
-    if (!surahNum) return;
-    let activeReciter = 'ar.alafasy';
-    try {
-      const { usePreferencesStore } = require('../../src/store/usePreferencesStore');
-      activeReciter = usePreferencesStore.getState().selectedReciter || 'ar.alafasy';
-    } catch (e) {}
-    const downloaded = await isSurahDownloaded(surahNum, activeReciter);
-    setIsDownloaded(downloaded);
-  };
-
-  useEffect(() => {
-    if (surahData) {
-      checkOfflineStatus();
-    }
-  }, [surahData]);
-
-  const handleToggleOffline = async () => {
-    if (!surahData) return;
-    let activeReciter = 'ar.alafasy';
-    try {
-      const { usePreferencesStore } = require('../../src/store/usePreferencesStore');
-      activeReciter = usePreferencesStore.getState().selectedReciter || 'ar.alafasy';
-    } catch (e) {}
-
-    if (isDownloaded) {
-      Alert.alert(
-        'Delete Offline Audio',
-        `Are you sure you want to remove offline audio files for Surah ${surahData.englishName}?`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Delete',
-            style: 'destructive',
-            onPress: async () => {
-              try {
-                await deleteDownloadedSurah(surahNum, surahData.numberOfAyahs, activeReciter);
-                setIsDownloaded(false);
-              } catch (e) {
-                console.warn('Failed to delete offline audio:', e);
-              }
-            }
-          }
-        ]
-      );
-    } else {
-      if (isDownloading) {
-        cancelSurahDownload(surahNum, activeReciter);
-        setIsDownloading(false);
-        setDownloadProgress(0);
-        return;
-      }
-
-      setIsDownloading(true);
-      setDownloadProgress(0);
-      try {
-        await downloadFullSurah(
-          surahNum,
-          surahData.numberOfAyahs,
-          activeReciter,
-          (progress) => {
-            setDownloadProgress(progress);
-          }
-        );
-        setIsDownloaded(true);
-        Alert.alert('Download Complete', `Surah ${surahData.englishName} is now available offline!`);
-      } catch (e: any) {
-        if (e.message !== 'Download cancelled by user.') {
-          Alert.alert('Download Failed', e.message || 'Unable to download surah audio.');
-        }
-      } finally {
-        setIsDownloading(false);
-        setDownloadProgress(0);
-      }
-    }
-  };
+    loadJuzDetails();
+  }, [juzId, quran.selectedTranslation]);
 
   // Sync state with global AudioPlayer service to highlight playing verse card
   useEffect(() => {
     const unsubscribe = AudioPlayer.subscribe((state) => {
-      if (state.currentSurah === surahNum && state.isPlaying) {
-        setActivePlayingVerse(state.currentVerse);
+      if (state.isPlaying && state.currentSurah && state.currentVerse) {
+        setActivePlayingVerse({ surah: state.currentSurah, verse: state.currentVerse });
       } else {
         setActivePlayingVerse(null);
       }
     });
     return unsubscribe;
-  }, [surahNum]);
+  }, []);
 
-  const loadSurahDetails = async () => {
+  const loadJuzDetails = async () => {
+    const translation = quran.selectedTranslation;
+    const cacheKey = `cached_juz_${juzNum}_${translation}`;
+    
     try {
       setLoading(true);
-      const data = await quran.fetchSurah(surahNum);
 
-      // Manually remove the first index in the array (Bismillah) if not Surah 9 (At-Tawba)
-      // if (surahNum !== 9 && data?.ayahs?.length > 0) {
-      //   data.ayahs.shift();
-      //   data.ayahs.forEach((ayah: any, index: number) => {
-      //     ayah.numberInSurah = index + 1;
-      //   });
-      // }
+      // 1. Try displaying cached data instantly (Stale-While-Revalidate)
+      const cached = await AsyncStorage.getItem(cacheKey);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        setJuzData(parsed);
+        setLoading(false);
+        
+        // Background fetch to update silently
+        fetchJuzFromApi(juzNum, translation, cacheKey);
+        return;
+      }
 
-      setSurahData(data);
-
-      // Auto scroll logic to highlighted verse or lastRead
-      setTimeout(() => {
-        let targetIndex = 0;
-        if (highlightVerse) {
-          targetIndex = parseInt(highlightVerse) - 1;
-        } else {
-          const matched = quran.recentlyRead.find((r) => r.surahId === surahNum);
-          if (matched) {
-            targetIndex = matched.verseNumber - 1;
-          }
-        }
-
-        if (targetIndex > 0 && data?.ayahs?.length > targetIndex) {
-          flatListRef.current?.scrollToIndex({
-            index: targetIndex,
-            animated: true,
-            viewPosition: 0.3,
-          });
-        }
-      }, 700);
+      // 2. Fetch from API if no cache exists
+      await fetchJuzFromApi(juzNum, translation, cacheKey);
     } catch (e) {
-      console.warn('Failed to load Surah details:', e);
-    } finally {
+      console.warn('Failed to load Juz details:', e);
       setLoading(false);
     }
   };
 
-  // Scroll handler computing top progress and saving position every 5 verses
+  const fetchJuzFromApi = async (juzNumber: number, translation: string, cacheKey: string) => {
+    try {
+      // Fetch Arabic Uthmani text of Juz
+      const arabicUrl = `https://api.alquran.cloud/v1/juz/${juzNumber}/quran-uthmani`;
+      const arabicRes = await axios.get(arabicUrl);
+      const arabicAyahs = arabicRes.data.data.ayahs;
+
+      let combinedAyahs = arabicAyahs;
+
+      // If translation selected, fetch translation and combine
+      if (translation && translation !== 'none') {
+        const transUrl = `https://api.alquran.cloud/v1/juz/${juzNumber}/${translation}`;
+        const transRes = await axios.get(transUrl);
+        const transAyahs = transRes.data.data.ayahs;
+
+        combinedAyahs = arabicAyahs.map((ayah: any, index: number) => ({
+          ...ayah,
+          translation: transAyahs[index]?.text || '',
+        }));
+      }
+
+      const juzDetails = {
+        number: juzNumber,
+        ayahs: combinedAyahs,
+      };
+
+      setJuzData(juzDetails);
+      setLoading(false);
+
+      // Save to cache
+      await AsyncStorage.setItem(cacheKey, JSON.stringify(juzDetails));
+    } catch (err) {
+      console.warn('API fetch for Juz failed:', err);
+    }
+  };
+
+  // Scroll handler computing top progress
   const handleScroll = (event: any) => {
     const offsetY = event.nativeEvent.contentOffset.y;
     const contentHeight = event.nativeEvent.contentSize.height;
@@ -204,22 +138,9 @@ export default function SurahReaderScreen() {
     }
   };
 
-  // Tracking current viewable verses to save position every 5 verses
-  const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
-    if (viewableItems && viewableItems.length > 0) {
-      const topItem = viewableItems[0];
-      const verseNumber = topItem.index + 1;
-
-      // Save reading position at intervals of 5 verses
-      if (verseNumber % 5 === 0 && surahData) {
-        quran.setLastRead(surahNum, verseNumber);
-      }
-    }
-  }).current;
-
   const handlePlayVerse = (item: any) => {
     const state = AudioPlayer.getState();
-    const isThisVerseLoaded = state.currentSurah === surahNum && state.currentVerse === item.numberInSurah;
+    const isThisVerseLoaded = state.currentSurah === item.surah.number && state.currentVerse === item.numberInSurah;
 
     if (isThisVerseLoaded) {
       if (state.isPlaying) {
@@ -228,12 +149,12 @@ export default function SurahReaderScreen() {
         AudioPlayer.play();
       }
     } else {
-      AudioPlayer.loadVerse(surahNum, item.numberInSurah);
+      AudioPlayer.loadVerse(item.surah.number, item.numberInSurah);
     }
   };
 
   const handleToggleVerseBookmark = async (item: any, isBookmarked: boolean) => {
-    const refId = `${surahNum}:${item.numberInSurah}`;
+    const refId = `${item.surah.number}:${item.numberInSurah}`;
     if (isBookmarked) {
       await quran.removeBookmark(refId);
     } else {
@@ -242,7 +163,7 @@ export default function SurahReaderScreen() {
         refId,
         arabicText: item.text,
         translation: item.translation || '',
-        reference: `Surah ${surahData?.englishName || ''} (${surahNum}:${item.numberInSurah})`,
+        reference: `${item.surah.englishName} (${item.surah.number}:${item.numberInSurah})`,
       });
     }
   };
@@ -251,9 +172,9 @@ export default function SurahReaderScreen() {
     router.push({
       pathname: '/quran/bookmarks',
       params: {
-        addNoteRef: `${surahNum}:${item.numberInSurah}`,
+        addNoteRef: `${item.surah.number}:${item.numberInSurah}`,
         arabicText: item.text,
-        reference: `Surah ${surahData?.englishName || ''} (${surahNum}:${item.numberInSurah})`,
+        reference: `${item.surah.englishName} (${item.surah.number}:${item.numberInSurah})`,
       },
     });
   };
@@ -265,8 +186,8 @@ export default function SurahReaderScreen() {
   };
 
   const handleToggleBookmark = async () => {
-    if (!selectedVerseForAction || !surahData) return;
-    const refId = `${surahNum}:${selectedVerseForAction.numberInSurah}`;
+    if (!selectedVerseForAction) return;
+    const refId = `${selectedVerseForAction.surah.number}:${selectedVerseForAction.numberInSurah}`;
     const bookmarked = quran.bookmarks.some((b) => b.refId === refId);
 
     if (bookmarked) {
@@ -277,19 +198,18 @@ export default function SurahReaderScreen() {
         refId,
         arabicText: selectedVerseForAction.text,
         translation: selectedVerseForAction.translation || '',
-        reference: `Surah ${surahData.englishName} (${surahNum}:${selectedVerseForAction.numberInSurah})`,
+        reference: `${selectedVerseForAction.surah.englishName} (${selectedVerseForAction.surah.number}:${selectedVerseForAction.numberInSurah})`,
       });
     }
     setActionSheetVisible(false);
   };
 
   const handleShareVerse = (verse: any) => {
-    if (!surahData) return;
     setVerseToShare({
-      title: `Surah ${surahData.englishName}`,
+      title: `${verse.surah.englishName}`,
       arabic: verse.text,
       translation: verse.translation || '',
-      reference: `Surah ${surahData.englishName} (${surahNum}:${verse.numberInSurah})`,
+      reference: `${verse.surah.englishName} (${verse.surah.number}:${verse.numberInSurah})`,
       contentType: 'ayah',
     });
     setShareModalVisible(true);
@@ -303,19 +223,19 @@ export default function SurahReaderScreen() {
 
   const handlePlayAudio = () => {
     if (!selectedVerseForAction) return;
-    AudioPlayer.loadVerse(surahNum, selectedVerseForAction.numberInSurah);
+    AudioPlayer.loadVerse(selectedVerseForAction.surah.number, selectedVerseForAction.numberInSurah);
     setActionSheetVisible(false);
   };
 
   const handleAddNote = () => {
-    if (!selectedVerseForAction || !surahData) return;
+    if (!selectedVerseForAction) return;
     setActionSheetVisible(false);
     router.push({
       pathname: '/quran/bookmarks',
       params: {
-        addNoteRef: `${surahNum}:${selectedVerseForAction.numberInSurah}`,
+        addNoteRef: `${selectedVerseForAction.surah.number}:${selectedVerseForAction.numberInSurah}`,
         arabicText: selectedVerseForAction.text,
-        reference: `Surah ${surahData.englishName} (${surahNum}:${selectedVerseForAction.numberInSurah})`,
+        reference: `${selectedVerseForAction.surah.englishName} (${selectedVerseForAction.surah.number}:${selectedVerseForAction.numberInSurah})`,
       },
     });
   };
@@ -323,11 +243,70 @@ export default function SurahReaderScreen() {
   const themeCtx = useThemeContext();
   const isDark = themeCtx?.theme === 'dark';
 
+  const renderJuzMushafPages = () => {
+    if (!juzData?.ayahs) return null;
+
+    // Group ayahs by surah
+    const groups: { surah: any; ayahs: any[] }[] = [];
+    juzData.ayahs.forEach((ayah: any) => {
+      const lastGroup = groups[groups.length - 1];
+      if (lastGroup && lastGroup.surah.number === ayah.surah.number) {
+        lastGroup.ayahs.push(ayah);
+      } else {
+        groups.push({
+          surah: ayah.surah,
+          ayahs: [ayah],
+        });
+      }
+    });
+
+    return groups.map((group) => (
+      <View key={group.surah.number} style={{ marginBottom: 30 }}>
+        {/* Beautiful Ornate Surah Header */}
+        <View style={styles.mushafSurahHeader}>
+          <ArabicText text={group.surah.name} size={22} style={styles.mushafSurahTitleAr} />
+          <Text style={styles.mushafSurahTitleEn}>Surah {group.surah.englishName}</Text>
+        </View>
+
+        {/* Bismillah if not At-Tawbah and starting from Ayah 1 of that Surah */}
+        {group.surah.number !== 9 && group.ayahs[0].numberInSurah === 1 && (
+          <Text style={styles.mushafBismillah}>بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</Text>
+        )}
+
+        <View style={[styles.mushafPaper, { backgroundColor: isDark ? '#141c2c' : '#FDFAF3', borderColor: isDark ? 'rgba(201, 168, 76, 0.25)' : 'rgba(201, 168, 76, 0.5)' }]}>
+          <View style={[styles.mushafFrame, { borderColor: isDark ? 'rgba(201, 168, 76, 0.2)' : 'rgba(201, 168, 76, 0.4)' }]}>
+            <Text style={[styles.mushafPageText, { color: isDark ? '#F0EAD6' : '#2B2620' }]}>
+              {group.ayahs.filter((ayah: any) => ayah.numberInSurah > 1 || group.surah.number === 9).map((ayah: any) => {
+                const isPlayingThis =
+                  activePlayingVerse?.surah === ayah.surah.number && activePlayingVerse?.verse === ayah.numberInSurah;
+                return (
+                  <Text
+                    key={`${ayah.surah.number}_${ayah.numberInSurah}`}
+                    onPress={() => handlePlayVerse(ayah)}
+                    onLongPress={() => handleLongPressVerse(ayah)}
+                    style={[
+                      styles.mushafVerseText,
+                      isPlayingThis && styles.mushafVersePlaying,
+                      isPlayingThis && { color: COLORS.teal }
+                    ]}
+                  >
+                    {ayah.text}
+                    <Text style={styles.mushafVerseNumber}> ﴿{ayah.numberInSurah}﴾ </Text>
+                  </Text>
+                );
+              })}
+            </Text>
+          </View>
+        </View>
+      </View>
+    ));
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={COLORS.gold} />
-        <Text style={styles.loadingText}>Fetching divine script...</Text>
+        <Text style={styles.loadingText}>Fetching Juz verses...</Text>
       </View>
     );
   }
@@ -352,26 +331,12 @@ export default function SurahReaderScreen() {
           <Ionicons name="arrow-back" size={24} color={COLORS.gold} />
         </TouchableOpacity>
         <View style={styles.headerTitleBox}>
-          <Text style={styles.headerTitleEnglish}>{surahData?.englishName}</Text>
+          <Text style={styles.headerTitleEnglish}>Juz {juzNum}</Text>
           <Text style={styles.headerSubtitle}>
-            {surahData?.numberOfAyahs} Ayahs • {surahData?.revelationType}
+            {juzData?.ayahs?.length || 0} Verses
           </Text>
         </View>
-        <TouchableOpacity onPress={handleToggleOffline} style={styles.downloadButton}>
-          {isDownloading ? (
-            <View style={styles.downloadProgressContainer}>
-              <ActivityIndicator size="small" color={COLORS.gold} />
-              <Text style={styles.progressText}>{Math.round(downloadProgress * 100)}%</Text>
-            </View>
-          ) : (
-            <Ionicons
-              name={isDownloaded ? "cloud-done" : "cloud-download-outline"}
-              size={22}
-              color={isDownloaded ? COLORS.gold : COLORS.text3}
-            />
-          )}
-        </TouchableOpacity>
-        <ArabicText text={surahData?.name} size={22} style={styles.headerTitleArabic} />
+        <Text style={[styles.headerTitleArabic, { fontSize: 20, color: COLORS.gold2, fontFamily: 'Amiri_700Bold' }]}>الجزء {juzNum}</Text>
       </View>
 
       {/* Reading Mode Toolbar */}
@@ -393,74 +358,30 @@ export default function SurahReaderScreen() {
       {/* Verse Rendering Body */}
       {readingMode === '15-line' ? (
         <ScrollView contentContainerStyle={styles.mushafContainer}>
-          {/* Beautiful Ornate Surah Header */}
-          <View style={styles.mushafSurahHeader}>
-            <ArabicText text={surahData?.name} size={22} style={styles.mushafSurahTitleAr} />
-            <Text style={styles.mushafSurahTitleEn}>Surah {surahData?.englishName}</Text>
-          </View>
-
-          {/* Bismillah if not At-Tawbah */}
-          {surahNum !== 9 && (
-            <Text style={styles.mushafBismillah}>بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</Text>
-          )}
-
-          <View style={[styles.mushafPaper, { backgroundColor: isDark ? '#141c2c' : '#FDFAF3', borderColor: isDark ? 'rgba(201, 168, 76, 0.25)' : 'rgba(201, 168, 76, 0.5)' }]}>
-            <View style={[styles.mushafFrame, { borderColor: isDark ? 'rgba(201, 168, 76, 0.2)' : 'rgba(201, 168, 76, 0.4)' }]}>
-              <Text style={[styles.mushafPageText, { color: isDark ? '#F0EAD6' : '#2B2620' }]}>
-                {surahData?.ayahs?.filter((ayah: any) => ayah.numberInSurah > 1 || surahNum === 9).map((ayah: any) => {
-                  const isPlayingThis = activePlayingVerse === ayah.numberInSurah;
-                  return (
-                    <Text
-                      key={ayah.numberInSurah}
-                      onPress={() => handlePlayVerse(ayah)}
-                      onLongPress={() => handleLongPressVerse(ayah)}
-                      style={[
-                        styles.mushafVerseText,
-                        isPlayingThis && styles.mushafVersePlaying,
-                        isPlayingThis && { color: COLORS.gold }
-                      ]}
-                    >
-                      {ayah.text}
-                      <Text style={styles.mushafVerseNumber}> ﴿{ayah.numberInSurah}﴾ </Text>
-                    </Text>
-                  );
-                })}
-              </Text>
-            </View>
-          </View>
+          {renderJuzMushafPages()}
         </ScrollView>
       ) : (
         <FlatList
           ref={flatListRef}
-          data={surahData?.ayahs}
-          keyExtractor={(item) => item.numberInSurah.toString()}
+          data={juzData?.ayahs}
+          keyExtractor={(item) => `${item.surah.number}_${item.numberInSurah}`}
           onScroll={handleScroll}
-          onViewableItemsChanged={onViewableItemsChanged}
           viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
-          onScrollToIndexFailed={(info) => {
-            flatListRef.current?.scrollToOffset({
-              offset: info.averageItemLength * info.index,
-              animated: true,
-            });
-          }}
           contentContainerStyle={styles.listPadding}
           windowSize={10}
           initialNumToRender={10}
           maxToRenderPerBatch={5}
-          getItemLayout={(data, index) => ({ length: 180, offset: 180 * index, index })}
-          ListHeaderComponent={null}
           renderItem={({ item }) => {
             const isWordByWord = readingMode === 'Word-by-word';
             const isBookmarked = quran.bookmarks.some(
-              (b) => b.refId === `${surahNum}:${item.numberInSurah}`
+              (b) => b.refId === `${item.surah.number}:${item.numberInSurah}`
             );
-            const isPlayingThis = activePlayingVerse === item.numberInSurah;
+            const isPlayingThis =
+              activePlayingVerse?.surah === item.surah.number && activePlayingVerse?.verse === item.numberInSurah;
 
             return (
-              <VerseItem
+              <JuzVerseItem
                 item={item}
-                surahNum={surahNum}
-                englishName={surahData?.englishName || ''}
                 isWordByWord={isWordByWord}
                 isBookmarked={isBookmarked}
                 isPlayingThis={isPlayingThis}
@@ -486,14 +407,14 @@ export default function SurahReaderScreen() {
           <View style={styles.modalContent}>
             <View style={styles.modalDragHandle} />
             <Text style={styles.modalTitle}>
-              Verse {selectedVerseForAction.numberInSurah} Options
+              {selectedVerseForAction.surah.englishName} ({selectedVerseForAction.surah.number}:{selectedVerseForAction.numberInSurah}) Options
             </Text>
 
             <TouchableOpacity style={styles.modalRow} onPress={handleToggleBookmark}>
               <Ionicons
                 name={
                   quran.bookmarks.some(
-                    (b) => b.refId === `${surahNum}:${selectedVerseForAction.numberInSurah}`
+                    (b) => b.refId === `${selectedVerseForAction.surah.number}:${selectedVerseForAction.numberInSurah}`
                   )
                     ? 'bookmark'
                     : 'bookmark-outline'
@@ -503,7 +424,7 @@ export default function SurahReaderScreen() {
               />
               <Text style={styles.modalRowText}>
                 {quran.bookmarks.some(
-                  (b) => b.refId === `${surahNum}:${selectedVerseForAction.numberInSurah}`
+                  (b) => b.refId === `${selectedVerseForAction.surah.number}:${selectedVerseForAction.numberInSurah}`
                 )
                   ? 'Remove Bookmark'
                   : 'Bookmark Verse'}
@@ -535,7 +456,7 @@ export default function SurahReaderScreen() {
         </View>
       )}
 
-      {/* Integrated Centralized AudioPlayerBar Component */}
+      {/* Floating Audio Bar */}
       <View style={styles.floatingAudioBarWrapper}>
         <AudioPlayerBar />
       </View>
@@ -552,10 +473,8 @@ export default function SurahReaderScreen() {
   );
 }
 
-interface VerseItemProps {
+interface JuzVerseItemProps {
   item: any;
-  surahNum: number;
-  englishName: string;
   isWordByWord: boolean;
   isBookmarked: boolean;
   isPlayingThis: boolean;
@@ -567,10 +486,8 @@ interface VerseItemProps {
   onShare: (item: any) => void;
 }
 
-const VerseItem = React.memo<VerseItemProps>(({
+const JuzVerseItem = React.memo<JuzVerseItemProps>(({
   item,
-  surahNum,
-  englishName,
   isWordByWord,
   isBookmarked,
   isPlayingThis,
@@ -599,8 +516,13 @@ const VerseItem = React.memo<VerseItemProps>(({
       ]}>
         {/* Card top reference line */}
         <View style={styles.verseHeader}>
-          <View style={styles.verseNumberBadge}>
-            <Text style={styles.verseNumberText}>{item.numberInSurah}</Text>
+          <View style={styles.verseHeaderLeft}>
+            <View style={styles.verseNumberBadge}>
+              <Text style={styles.verseNumberText}>{item.numberInSurah}</Text>
+            </View>
+            <Text style={styles.verseRefText}>
+              {item.surah.englishName} ({item.surah.number}:{item.numberInSurah})
+            </Text>
           </View>
           <View style={styles.cardActionsRow}>
             {isBookmarked && (
@@ -652,9 +574,9 @@ const VerseItem = React.memo<VerseItemProps>(({
             <Ionicons
               name={isPlayingThis ? 'pause-circle' : 'play-outline'}
               size={16}
-              color={isPlayingThis ? COLORS.gold : COLORS.text3}
+              color={isPlayingThis ? COLORS.teal : COLORS.text3}
             />
-            <Text style={[styles.actionTrayBtnText, isPlayingThis && { color: COLORS.gold }]}>
+            <Text style={[styles.actionTrayBtnText, isPlayingThis && { color: COLORS.teal }]}>
               {isPlayingThis ? 'Playing' : 'Play'}
             </Text>
           </TouchableOpacity>
@@ -695,15 +617,6 @@ const VerseItem = React.memo<VerseItemProps>(({
         </View>
       </Card>
     </TouchableOpacity>
-  );
-}, (prev, next) => {
-  return (
-    prev.item.text === next.item.text &&
-    prev.item.translation === next.item.translation &&
-    prev.isWordByWord === next.isWordByWord &&
-    prev.isBookmarked === next.isBookmarked &&
-    prev.isPlayingThis === next.isPlayingThis &&
-    prev.selectedTranslation === next.selectedTranslation
   );
 });
 
@@ -764,23 +677,6 @@ const styles = StyleSheet.create({
   headerTitleArabic: {
     color: COLORS.gold2,
   },
-  downloadButton: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 10,
-  },
-  downloadProgressContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  progressText: {
-    fontSize: 10,
-    color: COLORS.gold,
-    fontWeight: 'bold',
-    marginLeft: 4,
-  },
   modeToolbar: {
     flexDirection: 'row',
     justifyContent: 'space-around',
@@ -812,21 +708,31 @@ const styles = StyleSheet.create({
   listPadding: {
     paddingHorizontal: 20,
     paddingTop: 16,
-    paddingBottom: 130, // accommodates floating bottom audio player controller
+    paddingBottom: 130,
   },
   verseCard: {
     padding: 18,
     marginBottom: 12,
   },
   verseCardPlaying: {
-    borderColor: COLORS.gold,
-    backgroundColor: 'rgba(201, 168, 76, 0.05)',
+    borderColor: COLORS.teal,
+    backgroundColor: 'rgba(20, 184, 166, 0.04)',
   },
   verseHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 12,
+  },
+  verseHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  verseRefText: {
+    color: COLORS.text2,
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginLeft: 10,
   },
   verseNumberBadge: {
     width: 28,
@@ -948,8 +854,8 @@ const styles = StyleSheet.create({
     color: COLORS.gold,
   },
   mushafVersePlaying: {
-    color: COLORS.gold,
-    textShadowColor: 'rgba(201, 168, 76, 0.25)',
+    color: COLORS.teal,
+    textShadowColor: 'rgba(20, 184, 166, 0.25)',
     textShadowRadius: 6,
   },
   mushafVerseNumber: {
@@ -1007,7 +913,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   modalCloseText: {
-    color: COLORS.gold,
+    color: COLORS.teal,
     fontWeight: 'bold',
     fontSize: 14,
   },

@@ -172,6 +172,12 @@ export default function PrayerTabScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right']}>
+      <LinearGradient
+        colors={isDark ? ['#0C101B', '#06080E'] : ['#FFFFFF', '#FAF8F3']}
+        style={StyleSheet.absoluteFillObject}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      />
       {/* Brand App Header */}
       <AppHeader onSettingsPress={() => router.push('/settings')} />
 

@@ -1,5 +1,6 @@
 import React from 'react';
 import { StyleSheet, View, TouchableOpacity, StyleProp, ViewStyle } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useThemeContext } from '../../src/context/ThemeContext';
 
 interface CardProps {
@@ -18,6 +19,10 @@ export const Card: React.FC<CardProps> = ({
   const themeCtx = useThemeContext();
   const isDark = themeCtx?.theme === 'dark';
 
+  const gradientColors = isDark
+    ? ['#161E2E', '#0E1321'] as const
+    : ['#FFFFFF', '#F7F6EE'] as const;
+
   const cardStyles = [
     styles.card,
     isDark ? styles.cardDark : styles.cardLight,
@@ -31,12 +36,28 @@ export const Card: React.FC<CardProps> = ({
         activeOpacity={activeOpacity}
         style={cardStyles}
       >
+        <LinearGradient
+          colors={gradientColors}
+          style={StyleSheet.absoluteFillObject}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        />
         {children}
       </TouchableOpacity>
     );
   }
 
-  return <View style={cardStyles}>{children}</View>;
+  return (
+    <View style={cardStyles}>
+      <LinearGradient
+        colors={gradientColors}
+        style={StyleSheet.absoluteFillObject}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      />
+      {children}
+    </View>
+  );
 };
 
 const styles = StyleSheet.create({
@@ -44,9 +65,9 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     borderWidth: 0.5,
+    overflow: 'hidden',
   },
   cardLight: {
-    backgroundColor: '#FFFFFF',
     borderColor: 'rgba(201, 168, 76, 0.15)', // Elegant soft gold-hued border
     shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 6 },
@@ -55,7 +76,6 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   cardDark: {
-    backgroundColor: '#111827', // Deep slate for dark mode cards
     borderColor: '#1a2235', // Dynamic darker border for dark mode
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 4 },

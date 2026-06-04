@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 
 import { useHadith } from '../../../src/hooks/useHadith';
+import { usePreferencesStore } from '../../../src/store/usePreferencesStore';
 import DuaShareModal, { ShareData } from '../../../components/ui/DuaShareModal';
 import { COLORS } from '../../../constants/theme';
 import Card from '../../../components/ui/Card';
@@ -48,6 +49,7 @@ export default function ChapterHadithListScreen() {
   const router = useRouter();
   const { bookSlug, chapterId } = useLocalSearchParams<{ bookSlug: string; chapterId: string }>();
   const hadithStore = useHadith();
+  const { language } = usePreferencesStore();
 
   const [nextPageLoading, setNextPageLoading] = useState(false);
   const [shareModalVisible, setShareModalVisible] = useState(false);
@@ -89,10 +91,12 @@ export default function ChapterHadithListScreen() {
   };
 
   const handleShareHadith = (item: any) => {
+    const isUrdu = language === 'ur';
+    const translationText = (isUrdu && item.hadithUrdu) ? item.hadithUrdu : item.hadithEnglish;
     setHadithToShare({
       title: 'Prophetic Guidance',
       arabic: item.hadithArabic,
-      translation: item.hadithEnglish,
+      translation: translationText,
       reference: `${themeMeta.name} #${item.hadithNumber}`,
       contentType: 'hadith',
     });
@@ -123,7 +127,16 @@ export default function ChapterHadithListScreen() {
     <SafeAreaView style={styles.container} edges={['left', 'right', 'top']}>
       {/* Custom Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <TouchableOpacity 
+          style={styles.backButton} 
+          onPress={() => {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace({ pathname: '/hadith/[bookSlug]', params: { bookSlug } });
+            }
+          }}
+        >
           <Ionicons name="arrow-back" size={24} color={COLORS.text} />
         </TouchableOpacity>
         <View style={styles.headerTitleContainer}>
@@ -140,7 +153,11 @@ export default function ChapterHadithListScreen() {
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
         renderItem={({ item }) => {
-          const isBookmarked = hadithStore.isBookmarked(`${item.book || item.bookName}:${item.hadithNumber}`);
+          const isUrdu = language === 'ur';
+          const narratorText = (isUrdu && item.urduNarrator) ? item.urduNarrator : item.englishNarrator;
+          const translationText = (isUrdu && item.hadithUrdu) ? item.hadithUrdu : item.hadithEnglish;
+          const refId = `${item.book || item.bookName}:${item.hadithNumber}`;
+          const isBookmarked = hadithStore.isBookmarked(refId);
 
           return (
             <Card style={styles.hadithCard}>
@@ -153,13 +170,21 @@ export default function ChapterHadithListScreen() {
               </View>
 
               <ArabicText text={item.hadithArabic} size={18} style={styles.arabicScript} />
-              <Text style={styles.englishScript}>{item.hadithEnglish}</Text>
+              
+              {narratorText ? (
+                <Text style={[styles.narratorText, isUrdu && styles.rtlText]}>
+                  {narratorText}
+                </Text>
+              ) : null}
+
+              <Text style={[styles.translationText, isUrdu && styles.rtlText, isUrdu && styles.urduScript]}>
+                {translationText}
+              </Text>
 
               <View style={styles.actionTray}>
                 <TouchableOpacity
                   style={styles.actionBtn}
                   onPress={async () => {
-                    const refId = `${item.book || item.bookName}:${item.hadithNumber}`;
                     if (isBookmarked) {
                       await hadithStore.removeBookmark(refId);
                     } else {
@@ -167,7 +192,7 @@ export default function ChapterHadithListScreen() {
                         type: 'hadith',
                         refId,
                         arabicText: item.hadithArabic,
-                        translation: item.hadithEnglish,
+                        translation: translationText,
                         reference: `${themeMeta.name} #${item.hadithNumber}`,
                       });
                     }
@@ -298,16 +323,32 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   arabicScript: {
-    color: COLORS.text,
+    color: COLORS.gold2,
     lineHeight: 34,
     textAlign: 'right',
     marginBottom: 12,
   },
-  englishScript: {
+  narratorText: {
+    fontSize: 12,
+    color: COLORS.gold,
+    fontWeight: '600',
+    fontStyle: 'italic',
+    marginBottom: 6,
+    lineHeight: 18,
+  },
+  translationText: {
     fontSize: 13,
     color: COLORS.text2,
     lineHeight: 19,
     textAlign: 'left',
+  },
+  rtlText: {
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  urduScript: {
+    fontSize: 15,
+    lineHeight: 24,
   },
   actionTray: {
     flexDirection: 'row',

@@ -14,17 +14,23 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
-import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
+import { AdhanPlayer } from '../../src/services/adhanPlayer';
 
-import { usePrayerStore } from '../../../src/store/prayerStore';
-import { schedulePrayerNotifications, NotificationSettings } from '../../../src/services/notificationService';
-import { COLORS } from '../../../constants/theme';
-import Card from '../../../components/ui/Card';
-import ArabicGeometricBg from '../../../components/ui/ArabicGeometricBg';
+import { usePrayerStore } from '../../src/store/prayerStore';
+import { schedulePrayerNotifications, NotificationSettings } from '../../src/services/notificationService';
+import { COLORS } from '../../constants/theme';
+import { useThemeContext } from '../../src/context/ThemeContext';
+import { LinearGradient } from 'expo-linear-gradient';
+import Card from '../../components/ui/Card';
+import ArabicGeometricBg from '../../components/ui/ArabicGeometricBg';
 
 export default function NotificationSettingsScreen() {
+  const { theme } = useThemeContext();
+  const isDark = theme === 'dark';
+
   const prayerStore = usePrayerStore();
   const [loading, setLoading] = useState(false);
+  const [isPlayingAdhan, setIsPlayingAdhan] = useState(false);
 
   // Enabled Toggles for each prayer
   const [enabledPrayers, setEnabledPrayers] = useState<Record<string, boolean>>({
@@ -49,6 +55,13 @@ export default function NotificationSettingsScreen() {
   const [hadithDigestEnabled, setHadithDigestEnabled] = useState<boolean>(true);
   const [tasbeehReminderEnabled, setTasbeehReminderEnabled] = useState<boolean>(true);
   const [fastingAlertsEnabled, setFastingAlertsEnabled] = useState<boolean>(true);
+
+  // Stop sound on unmount
+  useEffect(() => {
+    return () => {
+      AdhanPlayer.stopAdhan();
+    };
+  }, []);
 
   // Load existing settings on mount
   useEffect(() => {
@@ -118,6 +131,12 @@ export default function NotificationSettingsScreen() {
   };
 
   const handleTestAlert = async () => {
+    if (isPlayingAdhan) {
+      AdhanPlayer.stopAdhan();
+      setIsPlayingAdhan(false);
+      return;
+    }
+
     try {
       const { status } = await Notifications.getPermissionsAsync();
       if (status !== 'granted') {
@@ -129,23 +148,16 @@ export default function NotificationSettingsScreen() {
       }
 
       let soundFile: string | undefined = 'default';
-      let soundUrl = 'https://github.com/AalianKhan/adhans/blob/master/adhan.mp3?raw=true';
-
       if (sound === 'Silent') {
         soundFile = undefined;
-        soundUrl = '';
       } else if (sound === 'Simple') {
         soundFile = 'simple_tone.wav';
-        soundUrl = 'https://assets.mixkit.co/active_storage/sfx/2568/2568-84.wav';
       } else if (sound === 'Madinah') {
         soundFile = 'adhan_madinah.wav';
-        soundUrl = 'https://github.com/AalianKhan/adhans/blob/master/adhan_fajr.mp3?raw=true';
       } else if (sound === 'Makkah') {
         soundFile = 'adhan.wav';
-        soundUrl = 'https://github.com/AalianKhan/adhans/blob/master/adhan.mp3?raw=true';
       } else if (sound === 'Vibrate') {
         soundFile = 'default';
-        soundUrl = '';
       }
 
       // 1. Schedule local OS banner notification (triggers in 2s)
@@ -162,25 +174,17 @@ export default function NotificationSettingsScreen() {
         },
       });
 
-      // 2. Play live audio stream using expo-audio for instant high-fidelity developer experience
-      if (soundUrl) {
-        await setAudioModeAsync({
-          playsInSilentMode: true,
-          shouldPlayInBackground: true,
-        });
-
-        const player = createAudioPlayer(soundUrl);
-        player.play();
-
-        // Auto release player after 12 seconds to prevent memory leaks
-        setTimeout(() => {
-          player.release();
-        }, 12000);
+      // 2. Play live audio stream using AdhanPlayer service
+      if (sound !== 'Silent' && sound !== 'Vibrate') {
+        setIsPlayingAdhan(true);
+        await AdhanPlayer.playAdhan(sound);
       }
 
       Alert.alert(
-        'Test Adhan Playing',
-        `A test banner notification is queued and your selected ${sound} Adhan is playing live!`
+        'Test Adhan Triggered',
+        sound === 'Silent' || sound === 'Vibrate'
+          ? `A test notification has been queued.`
+          : `A test notification has been queued and your selected ${sound} Adhan is playing!`
       );
     } catch (e: any) {
       Alert.alert('Test Failed', e.message || 'Unable to trigger alert.');
@@ -189,13 +193,28 @@ export default function NotificationSettingsScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right', 'top']}>
+      <LinearGradient
+        colors={isDark ? ['#0C101B', '#06080E'] : ['#FFFFFF', '#FAF8F3']}
+        style={StyleSheet.absoluteFillObject}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      />
       {/* Arabic Geometric Overlay Background */}
       <ArabicGeometricBg size={400} style={styles.backgroundOverlay} />
 
       {/* Screen Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+        <TouchableOpacity 
+          style={styles.backButton} 
+          onPress={() => {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace('/(tabs)/prayer');
+            }
+          }}
+        >
+          <Ionicons name="arrow-back" size={24} color={COLORS.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Adhan Alerts</Text>
         <View style={{ width: 40 }} />
@@ -252,7 +271,7 @@ export default function NotificationSettingsScreen() {
                 <Ionicons
                   name={sound === item.val ? 'radio-button-on' : 'radio-button-off'}
                   size={16}
-                  color={sound === item.val ? COLORS.teal : COLORS.text3}
+                  color={sound === item.val ? COLORS.gold : COLORS.text3}
                   style={{ marginRight: 8 }}
                 />
                 <Text style={[styles.soundPillText, sound === item.val && styles.soundTextActive]}>
@@ -277,7 +296,7 @@ export default function NotificationSettingsScreen() {
                 <Text style={styles.switchLabelText}>{prayer}</Text>
               </View>
               <Switch
-                trackColor={{ false: COLORS.bg3, true: COLORS.teal }}
+                trackColor={{ false: COLORS.bg3, true: COLORS.gold }}
                 thumbColor="#FFFFFF"
                 ios_backgroundColor={COLORS.bg3}
                 value={enabledPrayers[prayer] ?? false}
@@ -304,7 +323,7 @@ export default function NotificationSettingsScreen() {
               </View>
             </View>
             <Switch
-              trackColor={{ false: COLORS.bg3, true: COLORS.teal }}
+              trackColor={{ false: COLORS.bg3, true: COLORS.gold }}
               thumbColor="#FFFFFF"
               ios_backgroundColor={COLORS.bg3}
               value={morningAdhkarEnabled}
@@ -326,7 +345,7 @@ export default function NotificationSettingsScreen() {
               </View>
             </View>
             <Switch
-              trackColor={{ false: COLORS.bg3, true: COLORS.teal }}
+              trackColor={{ false: COLORS.bg3, true: COLORS.gold }}
               thumbColor="#FFFFFF"
               ios_backgroundColor={COLORS.bg3}
               value={eveningAdhkarEnabled}
@@ -348,7 +367,7 @@ export default function NotificationSettingsScreen() {
               </View>
             </View>
             <Switch
-              trackColor={{ false: COLORS.bg3, true: COLORS.teal }}
+              trackColor={{ false: COLORS.bg3, true: COLORS.gold }}
               thumbColor="#FFFFFF"
               ios_backgroundColor={COLORS.bg3}
               value={jummahReminderEnabled}
@@ -370,7 +389,7 @@ export default function NotificationSettingsScreen() {
               </View>
             </View>
             <Switch
-              trackColor={{ false: COLORS.bg3, true: COLORS.teal }}
+              trackColor={{ false: COLORS.bg3, true: COLORS.gold }}
               thumbColor="#FFFFFF"
               ios_backgroundColor={COLORS.bg3}
               value={hadithDigestEnabled}
@@ -392,7 +411,7 @@ export default function NotificationSettingsScreen() {
               </View>
             </View>
             <Switch
-              trackColor={{ false: COLORS.bg3, true: COLORS.teal }}
+              trackColor={{ false: COLORS.bg3, true: COLORS.gold }}
               thumbColor="#FFFFFF"
               ios_backgroundColor={COLORS.bg3}
               value={tasbeehReminderEnabled}
@@ -414,7 +433,7 @@ export default function NotificationSettingsScreen() {
               </View>
             </View>
             <Switch
-              trackColor={{ false: COLORS.bg3, true: COLORS.teal }}
+              trackColor={{ false: COLORS.bg3, true: COLORS.gold }}
               thumbColor="#FFFFFF"
               ios_backgroundColor={COLORS.bg3}
               value={fastingAlertsEnabled}
@@ -462,7 +481,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.03)',
+    borderBottomColor: COLORS.bg3,
   },
   backButton: {
     width: 40,
@@ -477,7 +496,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: COLORS.text,
   },
   scrollContent: {
     paddingBottom: 40,
@@ -500,7 +519,7 @@ const styles = StyleSheet.create({
   },
   offsetCard: {
     backgroundColor: COLORS.bg2,
-    borderColor: 'rgba(255,255,255,0.03)',
+    borderColor: COLORS.bg3,
     borderWidth: 1,
     borderRadius: 16,
     padding: 16,
@@ -516,11 +535,11 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: COLORS.bg3,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.03)',
+    borderColor: COLORS.bg3,
   },
   offsetPillActive: {
-    borderColor: COLORS.teal,
-    backgroundColor: 'rgba(45,212,191,0.06)',
+    borderColor: COLORS.gold,
+    backgroundColor: 'rgba(201,168,76,0.08)',
   },
   offsetPillText: {
     fontSize: 12,
@@ -528,12 +547,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   offsetTextActive: {
-    color: COLORS.teal,
+    color: COLORS.gold,
     fontWeight: 'bold',
   },
   soundCard: {
     backgroundColor: COLORS.bg2,
-    borderColor: 'rgba(255,255,255,0.03)',
+    borderColor: COLORS.bg3,
     borderWidth: 1,
     borderRadius: 16,
     padding: 16,
@@ -546,10 +565,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.02)',
+    borderBottomColor: COLORS.bg3,
   },
   soundPillActive: {
-    borderBottomColor: 'rgba(45,212,191,0.15)',
+    borderBottomColor: 'rgba(201,168,76,0.18)',
   },
   soundPillText: {
     fontSize: 13,
@@ -557,12 +576,12 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   soundTextActive: {
-    color: '#FFFFFF',
+    color: COLORS.gold,
     fontWeight: 'bold',
   },
   switchesCard: {
     backgroundColor: COLORS.bg2,
-    borderColor: 'rgba(255,255,255,0.03)',
+    borderColor: COLORS.bg3,
     borderWidth: 1,
     borderRadius: 16,
     paddingHorizontal: 16,
@@ -574,7 +593,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.02)',
+    borderBottomColor: COLORS.bg3,
   },
   switchLabelBox: {
     flexDirection: 'row',
@@ -583,7 +602,7 @@ const styles = StyleSheet.create({
   switchLabelText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: COLORS.text,
     marginLeft: 12,
   },
   actionRow: {
@@ -608,7 +627,7 @@ const styles = StyleSheet.create({
   },
   saveBtn: {
     width: '58%',
-    backgroundColor: COLORS.teal,
+    backgroundColor: COLORS.gold,
     paddingVertical: 14,
     borderRadius: 12,
     flexDirection: 'row',

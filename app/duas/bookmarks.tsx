@@ -18,26 +18,26 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 
-import { useDuasStore } from '../../../src/store/duasStore';
-import { COLORS } from '../../../constants/theme';
-import Card from '../../../components/ui/Card';
-import ArabicGeometricBg from '../../../components/ui/ArabicGeometricBg';
-import { Dua } from '../../../src/api/client';
-import DuaShareModal from '../../../components/ui/DuaShareModal';
+import { useDuasStore } from '../../src/store/duasStore';
+import { COLORS } from '../../constants/theme';
+import Card from '../../components/ui/Card';
+import ArabicGeometricBg from '../../components/ui/ArabicGeometricBg';
+import { Dua } from '../../src/api/client';
+import DuaShareModal from '../../components/ui/DuaShareModal';
 
 const { width, height } = Dimensions.get('window');
 
-const CATEGORY_EMOJIS: Record<string, string> = {
-  'morning-adhkar': '🌅',
-  'evening-adhkar': '🌌',
-  'food-eating': '🍲',
-  'before-sleep': '🌙',
-  'upon-waking': '☀️',
-  'travel': '🚗',
-  'protection': '🛡️',
-  'entering-home': '🏡',
-  'stress-anxiety': '🌀',
-  'gratitude': '💖',
+const CATEGORY_ICONS: Record<string, { icon: keyof typeof Ionicons.glyphMap; color: string; bg: string }> = {
+  'morning-adhkar': { icon: 'sunny-outline', color: '#F59E0B', bg: 'rgba(245,158,11,0.08)' },
+  'evening-adhkar': { icon: 'moon-outline', color: '#818CF8', bg: 'rgba(129,140,248,0.08)' },
+  'food-eating': { icon: 'restaurant-outline', color: '#10B981', bg: 'rgba(16,185,129,0.08)' },
+  'before-sleep': { icon: 'bed-outline', color: '#60A5FA', bg: 'rgba(96,165,250,0.08)' },
+  'upon-waking': { icon: 'alarm-outline', color: '#F472B6', bg: 'rgba(244,114,182,0.08)' },
+  'travel': { icon: 'airplane-outline', color: '#2DD4BF', bg: 'rgba(45,212,191,0.08)' },
+  'protection': { icon: 'shield-checkmark-outline', color: '#34D399', bg: 'rgba(52,211,153,0.08)' },
+  'entering-home': { icon: 'home-outline', color: '#A78BFA', bg: 'rgba(167,139,250,0.08)' },
+  'stress-anxiety': { icon: 'pulse-outline', color: '#F87171', bg: 'rgba(248,113,113,0.08)' },
+  'gratitude': { icon: 'heart-outline', color: '#EC4899', bg: 'rgba(236,72,153,0.08)' },
 };
 
 const CATEGORY_NAMES: Record<string, string> = {
@@ -122,7 +122,6 @@ const SwipeableItem = React.memo<SwipeableItemProps>(function SwipeableItem({ bo
 
   const title = duaDetail?.title || bookmark.reference || 'Supplication';
   const category = duaDetail?.category || 'general';
-  const emoji = CATEGORY_EMOJIS[category] || '🕌';
   const catName = CATEGORY_NAMES[category] || 'General Supplication';
   const dateStr = bookmark.savedAt
     ? new Date(bookmark.savedAt).toLocaleDateString(undefined, {
@@ -162,11 +161,17 @@ const SwipeableItem = React.memo<SwipeableItemProps>(function SwipeableItem({ bo
           style={styles.cardTouchBody}
         >
           <View style={styles.cardHeader}>
-            <View style={styles.categoryBadge}>
-              <Text style={styles.categoryBadgeText}>
-                {emoji} {catName}
-              </Text>
-            </View>
+            {(() => {
+              const meta = CATEGORY_ICONS[category] || { icon: 'book-outline', color: COLORS.gold, bg: 'rgba(201,168,76,0.08)' };
+              return (
+                <View style={[styles.categoryBadge, { backgroundColor: meta.bg, borderColor: 'rgba(255,255,255,0.04)', flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 3, paddingHorizontal: 6 }]}>
+                  <Ionicons name={meta.icon} size={11} color={meta.color} />
+                  <Text style={[styles.categoryBadgeText, { color: COLORS.teal }]}>
+                    {catName}
+                  </Text>
+                </View>
+              );
+            })()}
             <Text style={styles.saveDate}>{dateStr}</Text>
           </View>
 
@@ -237,7 +242,16 @@ export default function BookmarksScreen() {
 
       {/* Header bar */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+        <TouchableOpacity 
+          style={styles.backBtn} 
+          onPress={() => {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace('/(tabs)/duas/index');
+            }
+          }}
+        >
           <Ionicons name="arrow-back" size={24} color={COLORS.text} />
         </TouchableOpacity>
         <View style={styles.headerTitleContainer}>
@@ -261,7 +275,7 @@ export default function BookmarksScreen() {
           <Text style={styles.emptySubtitle}>
             Tapping the bookmark icon on any supplication card will save it here for offline reading!
           </Text>
-          <TouchableOpacity style={styles.exploreBtn} onPress={() => router.back()}>
+          <TouchableOpacity style={styles.exploreBtn} onPress={() => router.replace('/(tabs)/duas/index')}>
             <Text style={styles.exploreBtnText}>Browse Supplications</Text>
           </TouchableOpacity>
         </View>
@@ -314,10 +328,17 @@ export default function BookmarksScreen() {
               <View style={styles.sheetHandle} />
 
               <View style={styles.sheetHeader}>
-                <Text style={styles.sheetCategory}>
-                  {CATEGORY_EMOJIS[selectedDua.category] || '🕌'}{' '}
-                  {CATEGORY_NAMES[selectedDua.category] || 'Supplication'}
-                </Text>
+                {(() => {
+                  const meta = CATEGORY_ICONS[selectedDua.category] || { icon: 'book-outline', color: COLORS.gold, bg: 'rgba(201,168,76,0.08)' };
+                  return (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Ionicons name={meta.icon} size={14} color={meta.color} />
+                      <Text style={styles.sheetCategory}>
+                        {CATEGORY_NAMES[selectedDua.category] || 'Supplication'}
+                      </Text>
+                    </View>
+                  );
+                })()}
                 <TouchableOpacity
                   style={styles.sheetCloseBtn}
                   onPress={() => setModalVisible(false)}

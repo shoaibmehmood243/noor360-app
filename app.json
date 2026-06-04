@@ -36,7 +36,12 @@
       "expo-font"
     ],
     "extra": {
-      "supportsRTL": true
-    }
+      "supportsRTL": true,
+      "router": {},
+      "eas": {
+        "projectId": "0b54c482-c8d8-49eb-941f-7ed576333b4a"
+      }
+    },
+    "owner": "shoaib065"
   }
 }

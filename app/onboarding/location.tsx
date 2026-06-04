@@ -12,7 +12,7 @@ import ArabicGeometricBg from '../../components/ui/ArabicGeometricBg';
 
 export default function LocationScreen() {
   const router = useRouter();
-  const { setLocation } = usePreferencesStore();
+  const { setLocation, language, setLanguage } = usePreferencesStore();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -36,6 +36,22 @@ export default function LocationScreen() {
 
       // Update Zustand & AsyncStorage
       setLocation(latitude, longitude);
+
+      // Auto-detect country to set default language (Urdu if in Pakistan)
+      try {
+        const reverseGeocode = await Location.reverseGeocodeAsync({ latitude, longitude });
+        if (reverseGeocode && reverseGeocode.length > 0) {
+          const countryCode = reverseGeocode[0].isoCountryCode || '';
+          const countryName = reverseGeocode[0].country || '';
+          if (countryCode.toUpperCase() === 'PK' || countryName.toLowerCase().includes('pakistan')) {
+            if (language === 'en') {
+              await setLanguage('ur');
+            }
+          }
+        }
+      } catch (geoErr) {
+        console.warn('Silent fallback: Reverse geocoding failed.', geoErr);
+      }
 
       // Preload prayer times from central client
       try {

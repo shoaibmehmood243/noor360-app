@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Platform,
   Alert,
+  ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { captureRef } from 'react-native-view-shot';
@@ -16,6 +17,8 @@ import * as Sharing from 'expo-sharing';
 import * as Haptics from 'expo-haptics';
 
 import { COLORS } from '../../constants/theme';
+import { useThemeContext } from '../../src/context/ThemeContext';
+
 export interface ShareData {
   title: string;
   arabic: string;
@@ -33,6 +36,9 @@ interface DuaShareModalProps {
 }
 
 export default function DuaShareModal({ visible, dua, shareData, onClose }: DuaShareModalProps) {
+  const themeCtx = useThemeContext();
+  const isDark = themeCtx?.theme === 'dark';
+
   const viewRef = useRef<View>(null);
   const [sharing, setSharing] = useState(false);
 
@@ -50,6 +56,23 @@ export default function DuaShareModal({ visible, dua, shareData, onClose }: DuaS
         : null);
 
   if (!data) return null;
+
+  // Dynamic card theme styling
+  const cardBgColor = isDark ? '#0F0C1E' : '#FCFAF3'; // Dark purple/navy or Light cream
+  const titleColor = isDark ? COLORS.gold2 : COLORS.gold; // Golden title color to match the brand identity
+  const arabicColor = isDark ? COLORS.gold2 : '#B45309'; // Rich gold or deep gold/amber
+  const translitColor = isDark ? 'rgba(255,255,255,0.7)' : 'rgba(30,27,24,0.75)'; // Soft white or soft dark gray
+  const translationColor = isDark ? '#FFFFFF' : '#1E1B18'; // White or near-black
+  const refColor = isDark ? 'rgba(255,255,255,0.45)' : 'rgba(30,27,24,0.55)'; // Muted white or muted dark
+  const streakBgColor = isDark ? 'rgba(239, 68, 68, 0.08)' : 'rgba(239, 68, 68, 0.04)';
+  const streakCountColor = isDark ? '#FFFFFF' : '#EF4444'; // Red or white
+
+  // Modal layout colors
+  const modalBgColor = isDark ? '#161326' : '#FFFFFF';
+  const modalBorderColor = isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)';
+  const modalTitleColor = isDark ? '#FFFFFF' : '#1C1917';
+  const closeBtnBgColor = isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.04)';
+  const closeIconColor = isDark ? '#FFFFFF' : '#1C1917';
 
   const handleShareImage = async () => {
     if (sharing) return;
@@ -88,93 +111,99 @@ export default function DuaShareModal({ visible, dua, shareData, onClose }: DuaS
   return (
     <Modal visible={visible} transparent animationType="fade">
       <View style={styles.overlay}>
-        <View style={styles.modalCard}>
+        <View style={[styles.modalCard, { backgroundColor: modalBgColor, borderColor: modalBorderColor }]}>
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.headerTitle}>Share Beautiful Card</Text>
-            <TouchableOpacity style={styles.closeBtn} onPress={onClose} disabled={sharing}>
-              <Ionicons name="close" size={22} color="#FFFFFF" />
+            <Text style={[styles.headerTitle, { color: modalTitleColor }]}>Share Beautiful Card</Text>
+            <TouchableOpacity style={[styles.closeBtn, { backgroundColor: closeBtnBgColor }]} onPress={onClose} disabled={sharing}>
+              <Ionicons name="close" size={22} color={closeIconColor} />
             </TouchableOpacity>
           </View>
 
           {/* Styled Shareable Card Container (Captured by ViewShot) */}
-          <View style={styles.cardFrame}>
-            <View ref={viewRef} collapsable={false} style={styles.shareableCard}>
-              {/* Islamic Geometric Golden Double Border */}
-              <View style={styles.outerBorder}>
-                <View style={styles.innerBorder}>
-                  {/* Decorative corner ornaments */}
-                  <View style={[styles.cornerOrnament, styles.topLeft]} />
-                  <View style={[styles.cornerOrnament, styles.topRight]} />
-                  <View style={[styles.cornerOrnament, styles.bottomLeft]} />
-                  <View style={[styles.cornerOrnament, styles.bottomRight]} />
+          <ScrollView 
+            style={{ width: '100%', maxHeight: Dimensions.get('window').height * 0.55 }}
+            contentContainerStyle={{ width: '100%' }}
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={[styles.cardFrame, { backgroundColor: cardBgColor }]}>
+              <View ref={viewRef} collapsable={false} style={[styles.shareableCard, { backgroundColor: cardBgColor }]}>
+                {/* Islamic Geometric Golden Double Border */}
+                <View style={styles.outerBorder}>
+                  <View style={styles.innerBorder}>
+                    {/* Decorative corner ornaments */}
+                    <View style={[styles.cornerOrnament, styles.topLeft]} />
+                    <View style={[styles.cornerOrnament, styles.topRight]} />
+                    <View style={[styles.cornerOrnament, styles.bottomLeft]} />
+                    <View style={[styles.cornerOrnament, styles.bottomRight]} />
 
-                  {/* Header Ornament based on content type */}
-                  <Ionicons 
-                    name={
-                      data.contentType === 'hadith' 
-                        ? 'book-outline' 
-                        : data.contentType === 'ayah' 
-                        ? 'ribbon-outline' 
-                        : data.contentType === 'streak'
-                        ? 'flame'
-                        : 'moon-outline'
-                    } 
-                    size={24} 
-                    color={data.contentType === 'streak' ? '#F59E0B' : COLORS.gold} 
-                    style={styles.starOrnament} 
-                  />
+                    {/* Header Ornament based on content type */}
+                    <Ionicons 
+                      name={
+                        data.contentType === 'hadith' 
+                          ? 'book-outline' 
+                          : data.contentType === 'ayah' 
+                          ? 'ribbon-outline' 
+                          : data.contentType === 'streak'
+                          ? 'flame'
+                          : 'moon-outline'
+                      } 
+                      size={24} 
+                      color={data.contentType === 'streak' ? '#F59E0B' : COLORS.gold} 
+                      style={styles.starOrnament} 
+                    />
 
-                  {data.contentType === 'streak' ? (
-                    <View style={styles.streakContainer}>
-                      <Text style={styles.streakCardTitle}>{data.title}</Text>
+                    {data.contentType === 'streak' ? (
+                      <View style={styles.streakContainer}>
+                        <Text style={[styles.streakCardTitle, { color: titleColor }]}>{data.title}</Text>
 
-                      {/* Large Center-Aligned Amiri Arabic Text */}
-                      <Text style={[styles.cardArabic, { fontSize: 20, marginVertical: 4, maxHeight: '22%' }]}>
-                        {data.arabic}
-                      </Text>
+                        {/* Large Center-Aligned Amiri Arabic Text */}
+                        <Text style={[styles.cardArabic, { fontSize: 20, marginVertical: 4, color: arabicColor }]}>
+                          {data.arabic}
+                        </Text>
 
-                      {/* Circular flame container */}
-                      <View style={styles.streakCircle}>
-                        <Ionicons name="flame" size={28} color="#EF4444" style={{ marginBottom: -2 }} />
-                        <Text style={styles.streakCountText}>{data.transliteration}</Text>
+                        {/* Circular flame container */}
+                        <View style={[styles.streakCircle, { backgroundColor: streakBgColor }]}>
+                          <Ionicons name="flame" size={28} color="#EF4444" style={{ marginBottom: -2 }} />
+                          <Text style={[styles.streakCountText, { color: streakCountColor }]}>{data.transliteration}</Text>
+                        </View>
+
+                        {/* Stats Text */}
+                        <Text style={[styles.streakStatsText, { color: translationColor }]}>{data.translation}</Text>
+
+                        {/* Reference */}
+                        <Text style={[styles.cardRef, { marginTop: 4, color: refColor }]}>{data.reference}</Text>
                       </View>
+                    ) : (
+                      <>
+                        <Text style={[styles.cardTitle, { color: titleColor }]}>{data.title}</Text>
 
-                      {/* Stats Text */}
-                      <Text style={styles.streakStatsText}>{data.translation}</Text>
+                        {/* Large Center-Aligned Amiri Arabic Text */}
+                        <Text style={[styles.cardArabic, { color: arabicColor }]}>{data.arabic}</Text>
 
-                      {/* Reference */}
-                      <Text style={[styles.cardRef, { marginTop: 4 }]}>{data.reference}</Text>
+                        {/* Transliteration */}
+                        {data.transliteration ? (
+                          <Text style={[styles.cardTranslit, { color: translitColor }]}>{data.transliteration}</Text>
+                        ) : null}
+
+                        {/* Centered Translation */}
+                        <Text style={[styles.cardTranslation, { color: translationColor }]}>"{data.translation}"</Text>
+
+                        {/* Reference */}
+                        <Text style={[styles.cardRef, { color: refColor }]}>{data.reference}</Text>
+                      </>
+                    )}
+
+                    {/* Footer Watermark */}
+                    <View style={styles.watermarkRow}>
+                      <Ionicons name="sparkles" size={12} color={COLORS.gold} style={{ marginRight: 4 }} />
+                      <Text style={styles.watermarkText}>Noor360</Text>
                     </View>
-                  ) : (
-                    <>
-                      <Text style={styles.cardTitle}>{data.title}</Text>
-
-                      {/* Large Center-Aligned Amiri Arabic Text */}
-                      <Text style={styles.cardArabic}>{data.arabic}</Text>
-
-                      {/* Transliteration */}
-                      {data.transliteration ? (
-                        <Text style={styles.cardTranslit}>{data.transliteration}</Text>
-                      ) : null}
-
-                      {/* Centered Translation */}
-                      <Text style={styles.cardTranslation}>"{data.translation}"</Text>
-
-                      {/* Reference */}
-                      <Text style={styles.cardRef}>{data.reference}</Text>
-                    </>
-                  )}
-
-                  {/* Footer Watermark */}
-                  <View style={styles.watermarkRow}>
-                    <Ionicons name="sparkles" size={12} color={COLORS.gold} style={{ marginRight: 4 }} />
-                    <Text style={styles.watermarkText}>Noor360</Text>
                   </View>
                 </View>
               </View>
             </View>
-          </View>
+          </ScrollView>
 
           {/* Action Button */}
           <TouchableOpacity
@@ -238,7 +267,6 @@ const styles = StyleSheet.create({
   },
   cardFrame: {
     width: '100%',
-    aspectRatio: 1,
     borderRadius: 16,
     overflow: 'hidden',
     marginBottom: 20,
@@ -251,7 +279,7 @@ const styles = StyleSheet.create({
   },
   shareableCard: {
     width: '100%',
-    height: '100%',
+    minHeight: 320,
     backgroundColor: '#0F0C1E',
     padding: 16,
     justifyContent: 'center',
@@ -259,7 +287,7 @@ const styles = StyleSheet.create({
   },
   outerBorder: {
     width: '100%',
-    height: '100%',
+    flex: 1,
     borderWidth: 1.5,
     borderColor: COLORS.gold,
     borderRadius: 8,
@@ -267,11 +295,13 @@ const styles = StyleSheet.create({
   },
   innerBorder: {
     width: '100%',
-    height: '100%',
+    flex: 1,
     borderWidth: 0.5,
     borderColor: COLORS.gold,
     borderRadius: 4,
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingTop: 24,
+    paddingBottom: 28,
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
@@ -314,7 +344,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: COLORS.teal,
+    color: COLORS.gold,
     textAlign: 'center',
     textTransform: 'uppercase',
     letterSpacing: 1,
@@ -327,7 +357,6 @@ const styles = StyleSheet.create({
     lineHeight: 28,
     textAlign: 'center',
     marginBottom: 8,
-    maxHeight: '38%',
   },
   cardTranslit: {
     fontSize: 10.5,
@@ -394,7 +423,7 @@ const styles = StyleSheet.create({
   streakCardTitle: {
     fontSize: 11,
     fontWeight: '700',
-    color: COLORS.teal,
+    color: COLORS.gold,
     textAlign: 'center',
     textTransform: 'uppercase',
     letterSpacing: 1,
