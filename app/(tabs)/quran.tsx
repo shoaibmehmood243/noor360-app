@@ -6,6 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useIsFocused } from '@react-navigation/native';
+import ScreenBackground from '../../components/ui/ScreenBackground';
 
 import { useQuran } from '../../src/hooks/useQuran';
 import { getVerseOfDay, searchQuran, Surah } from '../../src/api/client';
@@ -72,7 +73,10 @@ export default function QuranHomeScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searchFocused, setSearchFocused] = useState(false);
-  const [lastRead, setLastRead] = useState<{ surahId: number; surahName: string; verseNumber: number } | null>(null);
+  const lastReadItem = quran.recentlyRead[0];
+  const matchedSurah = lastReadItem
+    ? quran.surahs.find((s) => s.number === lastReadItem.surahId)
+    : null;
   const [activeFilter, setActiveFilter] = useState<'All' | 'Meccan' | 'Medinan' | 'Bookmarked'>('All');
   const [activeTab, setActiveTab] = useState<'surah' | 'para' | 'favourites'>('surah');
   const [favouriteSurahs, setFavouriteSurahs] = useState<number[]>([]);
@@ -87,7 +91,7 @@ export default function QuranHomeScreen() {
     try {
       const { usePreferencesStore } = require('../../src/store/usePreferencesStore');
       activeReciter = usePreferencesStore.getState().selectedReciter || 'ar.alafasy';
-    } catch (e) {}
+    } catch (e) { }
     const list = await getDownloadedSurahsList(activeReciter);
     setDownloadedSurahs(list);
   };
@@ -101,7 +105,6 @@ export default function QuranHomeScreen() {
   // Load initial datasets
   useEffect(() => {
     fetchDailyVerse();
-    loadLastRead();
     loadFavourites();
   }, []);
 
@@ -109,7 +112,14 @@ export default function QuranHomeScreen() {
     try {
       const favSurahs = await AsyncStorage.getItem('favourite_surahs');
       const favJuz = await AsyncStorage.getItem('favourite_juz');
-      if (favSurahs) setFavouriteSurahs(JSON.parse(favSurahs));
+      if (favSurahs) {
+        setFavouriteSurahs(JSON.parse(favSurahs));
+      } else {
+        // Set default favorites: Kahf (18), Yaseen (36), Rehman (55), Waqia (56), Mulk (67), Naba (78)
+        const defaultSurahs = [18, 36, 55, 56, 67, 78];
+        setFavouriteSurahs(defaultSurahs);
+        await AsyncStorage.setItem('favourite_surahs', JSON.stringify(defaultSurahs));
+      }
       if (favJuz) setFavouriteJuz(JSON.parse(favJuz));
     } catch (e) {
       console.warn('Failed to load favourites:', e);
@@ -140,17 +150,7 @@ export default function QuranHomeScreen() {
     }
   };
 
-  // Sync Last Read on focus/load
-  const loadLastRead = async () => {
-    try {
-      const cached = await AsyncStorage.getItem('last_read');
-      if (cached) {
-        setLastRead(JSON.parse(cached));
-      }
-    } catch (e) {
-      console.warn('Failed to parse last read coordinate:', e);
-    }
-  };
+
 
   const fetchDailyVerse = async () => {
     try {
@@ -164,23 +164,30 @@ export default function QuranHomeScreen() {
     }
   };
 
-  // Debounced Search handler (400ms)
+  // Client-side Surah Search handler
   useEffect(() => {
-    if (searchQuery.trim().length < 2) {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) {
       setSearchResults([]);
       return;
     }
-    const timer = setTimeout(async () => {
-      try {
-        const results = await searchQuran(searchQuery);
-        setSearchResults(results || []);
-      } catch (err) {
-        console.warn('Search query failed:', err);
-      }
-    }, 400);
 
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
+    const filtered = quran.surahs.filter((s: Surah) => {
+      const numStr = s.number.toString();
+      const englishName = s.englishName.toLowerCase();
+      const englishTranslation = s.englishNameTranslation.toLowerCase();
+      const arabicName = s.name;
+
+      return (
+        englishName.includes(query) ||
+        englishTranslation.includes(query) ||
+        numStr === query ||
+        arabicName.includes(query)
+      );
+    });
+
+    setSearchResults(filtered);
+  }, [searchQuery, quran.surahs]);
 
   // Filters logic
   const getFilteredSurahs = () => {
@@ -207,37 +214,24 @@ export default function QuranHomeScreen() {
   const handleSelectSurah = (surah: Surah) => {
     // Record last read track locally on click
     quran.setLastRead(surah.number, 1);
-    setLastRead({
-      surahId: surah.number,
-      surahName: surah.englishName,
-      verseNumber: 1,
-    });
     router.push({
       pathname: `/quran/${surah.number}` as any,
     });
   };
 
-  const handleSearchResultPress = (item: any) => {
+  const handleSearchResultPress = (item: Surah) => {
     setSearchQuery('');
     setSearchResults([]);
-    router.push({
-      pathname: `/quran/${item.surah.number}` as any,
-      params: { highlightVerse: item.numberInSurah },
-    });
+    handleSelectSurah(item);
   };
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right']}>
-      <LinearGradient
-        colors={isDark ? ['#0C101B', '#06080E'] : ['#FFFFFF', '#FAF8F3']}
-        style={StyleSheet.absoluteFillObject}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      />
+      <ScreenBackground />
       {/* Shared branding App Header with Bismillah */}
       <AppHeader onSettingsPress={() => router.push('/settings')} />
 
-      <ScrollView contentContainerStyle={styles.scroll} nestedScrollEnabled>
+      <ScrollView contentContainerStyle={styles.scroll} nestedScrollEnabled keyboardShouldPersistTaps="handled">
         {/* Bookmarks & Reflections Companion Banner */}
         <View style={styles.section}>
           <TouchableOpacity
@@ -291,16 +285,16 @@ export default function QuranHomeScreen() {
 
         {/* 2. Interactive Search Bar with overlay */}
         <View style={[styles.section, { zIndex: 10 }]}>
-          <Text style={styles.sectionTitle}>Explore Holy Verses</Text>
+          <Text style={styles.sectionTitle}>Explore Surahs</Text>
           <View style={styles.searchContainer}>
             <Ionicons name="search" size={20} color={COLORS.text3} style={styles.searchIcon} />
             <TextInput
-              placeholder="Search by keywords or topics..."
+              placeholder="Search Surah by name or number..."
               placeholderTextColor={COLORS.text3}
               value={searchQuery}
               onChangeText={setSearchQuery}
               onFocus={() => setSearchFocused(true)}
-              onBlur={() => setTimeout(() => setSearchFocused(false), 200)}
+              onBlur={() => setTimeout(() => setSearchFocused(false), 350)}
               style={styles.searchInput}
             />
             {searchQuery.length > 0 && (
@@ -314,18 +308,18 @@ export default function QuranHomeScreen() {
           {searchFocused && searchResults.length > 0 && (
             <View style={styles.searchResultsDropdown}>
               <ScrollView style={styles.dropdownScroll} keyboardShouldPersistTaps="handled">
-                {searchResults.map((item, index) => (
+                {searchResults.map((item: Surah) => (
                   <TouchableOpacity
-                    key={index}
+                    key={item.number}
                     style={styles.searchResultRow}
                     onPress={() => handleSearchResultPress(item)}
                   >
                     <View style={styles.searchResultMeta}>
                       <Text style={styles.searchResultRef}>
-                        {item.surah.englishName} ({item.surah.number}:{item.numberInSurah})
+                        {item.number}. {item.englishName} ({item.name})
                       </Text>
                       <Text numberOfLines={1} style={styles.searchResultText}>
-                        {item.text}
+                        {item.numberOfAyahs} Verses • {item.englishNameTranslation}
                       </Text>
                     </View>
                     <Ionicons name="arrow-forward" size={16} color={COLORS.gold} />
@@ -337,21 +331,24 @@ export default function QuranHomeScreen() {
         </View>
 
         {/* 3. Continue Reading card */}
-        {lastRead && (
+        {lastReadItem && matchedSurah && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Continue Reading</Text>
             <Card style={styles.continueCard}>
               <View style={styles.continueLeft}>
                 <Ionicons name="book-outline" size={24} color={COLORS.gold} />
                 <View style={styles.continueMeta}>
-                  <Text style={styles.continueName}>Surah {lastRead.surahName}</Text>
-                  <Text style={styles.continueVerse}>Last read Verse {lastRead.verseNumber}</Text>
+                  <Text style={styles.continueName}>Surah {matchedSurah.englishName}</Text>
+                  <Text style={styles.continueVerse}>Last read Verse {lastReadItem.verseNumber}</Text>
                 </View>
               </View>
               <View style={styles.continueButtons}>
                 <TouchableOpacity
                   style={styles.continueBtn}
-                  onPress={() => router.push({ pathname: `/quran/${lastRead.surahId}` as any })}
+                  onPress={() => router.push({
+                    pathname: `/quran/${lastReadItem.surahId}` as any,
+                    params: { highlightVerse: lastReadItem.verseNumber.toString() }
+                  })}
                 >
                   <Text style={styles.continueBtnText}>Continue</Text>
                 </TouchableOpacity>
@@ -546,7 +543,7 @@ export default function QuranHomeScreen() {
                   <View style={styles.surahRight}>
                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                       <View style={{ marginRight: 8, alignItems: 'flex-end' }}>
-                        <Text style={[styles.arabicName, { fontSize: 18, fontWeight: 'bold', fontFamily: 'Amiri_700Bold', color: COLORS.gold2 }]}>
+                        <Text style={[styles.arabicName, { fontSize: 18, fontWeight: 'bold', fontFamily: 'Amiri_700Bold', color: COLORS.gold }]}>
                           {item.nameAr}
                         </Text>
                         <GoldBadge
@@ -739,7 +736,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   vodArabic: {
-    color: COLORS.gold2,
+    color: COLORS.gold,
     lineHeight: 34,
     marginBottom: 12,
   },
@@ -965,7 +962,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   arabicName: {
-    color: COLORS.gold2,
+    color: COLORS.gold,
     marginBottom: 4,
   },
   revelationBadge: {

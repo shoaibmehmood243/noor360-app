@@ -10,11 +10,17 @@ import {
   Dimensions,
   Platform,
   Share,
+  TextInput,
+  Modal,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
+import * as Location from 'expo-location';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import Svg, { Path } from 'react-native-svg';
 
 import { usePrayer } from '../../src/hooks/usePrayer';
 import { useTrackerStore, DayRecord, PrayerStatus } from '../../src/store/trackerStore';
@@ -23,6 +29,7 @@ import { usePreferencesStore } from '../../src/store/usePreferencesStore';
 import { COLORS } from '../../constants/theme';
 import ArabicGeometricBg from '../../components/ui/ArabicGeometricBg';
 import { useThemeContext } from '../../src/context/ThemeContext';
+import ScreenBackground from '../../components/ui/ScreenBackground';
 import Card from '../../components/ui/Card';
 import { NamesIcon } from '../../components/icons/NamesIcon';
 import { TasbeehIcon } from '../../components/icons/TasbeehIcon';
@@ -139,24 +146,42 @@ export default function HomeScreen() {
   const [shareModalVisible, setShareModalVisible] = useState(false);
   const [shareData, setShareData] = useState<ShareData | null>(null);
 
+  // Location Selector Modal States
+  const [locationModalVisible, setLocationModalVisible] = useState(false);
+  const [manualCity, setManualCity] = useState('');
+  const [manualCountry, setManualCountry] = useState('');
+  const [detectingLocation, setDetectingLocation] = useState(false);
+
   // 1. Initialize today's tracker record & load Quran recently read history
   useEffect(() => {
     trackerStore.initializeToday(todayStr);
+    trackerStore.syncWithBackend().catch((e) => console.warn('Salah tracker sync failed:', e));
     quranStore.loadLocalData().catch((e) => console.warn('Quran store load failed:', e));
 
-    // Set time-sensitive Islamic greeting
-    const hour = new Date().getHours();
-    if (hour < 12) {
-      setGreeting('Sabah Al-Khair'); // Good Morning
-    } else if (hour < 17) {
-      setGreeting('Assalamu Alaikum'); // Peace be upon you
-    } else {
-      setGreeting('Masa\'a Al-Khair'); // Good Evening
+    const loadGreetingAndName = async () => {
+      try {
+        const storedFirstName = await AsyncStorage.getItem('user_first_name');
+        const suffix = storedFirstName ? `, ${storedFirstName}` : '';
+        const hour = new Date().getHours();
+        if (hour < 12) {
+          setGreeting(`Sabah Al-Khair${suffix}`); // Good Morning
+        } else if (hour < 17) {
+          setGreeting(`Assalamu Alaikum${suffix}`); // Peace be upon you
+        } else {
+          setGreeting(`Masa'a Al-Khair${suffix}`); // Good Evening
+        }
+      } catch (e) {
+        console.warn('Failed to load user name for greeting:', e);
+      }
+    };
+
+    if (isFocused) {
+      loadGreetingAndName();
     }
 
     // Load dynamic content
     loadDailyScriptures();
-  }, []);
+  }, [isFocused]);
 
   // Load progress counts on mount and whenever screen focuses
   useEffect(() => {
@@ -310,14 +335,46 @@ export default function HomeScreen() {
     setShareModalVisible(true);
   };
 
+  const handleAutoDetectLocation = async () => {
+    try {
+      setDetectingLocation(true);
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Please grant location permissions in device settings.');
+        return;
+      }
+      const pos = await Location.getCurrentPositionAsync({});
+      const { latitude, longitude } = pos.coords;
+      await prayerStore.fetchPrayerTimes(latitude, longitude);
+      setLocationModalVisible(false);
+      Alert.alert('Success', `Location updated: ${prayerStore.location.city || 'Detected Location'}`);
+    } catch (e: any) {
+      Alert.alert('Error', e.message || 'Could not detect current location.');
+    } finally {
+      setDetectingLocation(false);
+    }
+  };
+
+  const handleSaveManualCity = async () => {
+    if (!manualCity.trim()) {
+      Alert.alert('Error', 'Please enter a city name.');
+      return;
+    }
+    try {
+      setDetectingLocation(true);
+      await prayerStore.fetchByCity(manualCity.trim(), manualCountry.trim());
+      setLocationModalVisible(false);
+      Alert.alert('Success', `Location set to ${manualCity.trim()}`);
+    } catch (e: any) {
+      Alert.alert('Error', e.message || 'Could not find prayer times for entered city.');
+    } finally {
+      setDetectingLocation(false);
+    }
+  };
+
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={isDark ? ['#0C101B', '#06080E'] : ['#FFFFFF', '#FAF8F3']}
-        style={StyleSheet.absoluteFillObject}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      />
+      <ScreenBackground />
       <ArabicGeometricBg size={width * 0.95} style={styles.bgGeometric} />
 
       <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -369,12 +426,20 @@ export default function HomeScreen() {
                   })}
                 </Text>
               </View>
-              <View style={styles.locBadge}>
+              <TouchableOpacity
+                style={styles.locBadge}
+                onPress={() => {
+                  setManualCity(prayerStore.location.city || '');
+                  setManualCountry(prayerStore.location.country || '');
+                  setLocationModalVisible(true);
+                }}
+                activeOpacity={0.7}
+              >
                 <Ionicons name="location-sharp" size={14} color={COLORS.gold} />
                 <Text style={styles.locText} numberOfLines={1}>
                   {prayerStore.location.city || 'Makkah'}
                 </Text>
-              </View>
+              </TouchableOpacity>
             </View>
 
             <View style={styles.divider} />
@@ -398,25 +463,104 @@ export default function HomeScreen() {
           {/* Quick Resume last-read Section */}
           <TouchableOpacity onPress={handleResumeReading} activeOpacity={0.85}>
             <LinearGradient
-              colors={['rgba(201,168,76,0.12)', 'rgba(201,168,76,0.03)']}
-              style={styles.resumeBar}
+              colors={[COLORS.gold2, COLORS.gold]}
+              style={styles.resumeCard}
             >
-              <View style={styles.resumeLeft}>
-                <View style={styles.bookIconCircle}>
-                  <MaterialCommunityIcons name="book-open-variant" size={18} color={COLORS.gold} />
+              {/* Bismillah Calligraphy in background/top-right */}
+              <Text style={styles.bismillahText}>
+                بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
+              </Text>
+
+              {/* Top Row: "Last Read" and Book Icon */}
+              <View style={styles.resumeHeaderRow}>
+                <MaterialCommunityIcons name="book-open-outline" size={16} color="#1C1B1F" />
+                <Text style={styles.resumeLabel}>Last Read</Text>
+              </View>
+
+              {/* Content Area */}
+              <View style={styles.resumeContentRow}>
+                {/* Left Details */}
+                <View style={styles.resumeDetails}>
+                  <Text style={styles.resumeSurahName} numberOfLines={1}>
+                    {matchedSurah ? matchedSurah.englishName : 'Al-Fatihah'}
+                  </Text>
+                  <Text style={styles.resumeAyahNo}>
+                    Ayah No: {lastReadItem ? lastReadItem.verseNumber : 1}
+                  </Text>
                 </View>
-                <View style={styles.resumeTextContainer}>
-                  <Text style={styles.resumeHeader}>
-                    {lastReadItem ? 'Continue Reading' : 'Start Reading'}
-                  </Text>
-                  <Text style={styles.resumeSurah}>
-                    {matchedSurah
-                      ? `${matchedSurah.englishName} (Verse ${lastReadItem.verseNumber})`
-                      : 'Surah Al-Fatihah (Verse 1)'}
-                  </Text>
+
+                {/* Right Quran/Rehal Vector Graphic */}
+                <View style={styles.quranIllustrationContainer}>
+                  <Svg width={100} height={80} viewBox="0 0 100 80" fill="none">
+                    {/* Rehal Stand (Darker Wood Gold) */}
+                    <Path
+                      d="M20 70 L50 45 L80 70"
+                      stroke="#8A5A16"
+                      strokeWidth="8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <Path
+                      d="M32 70 L50 45 L68 70"
+                      stroke="#633F0D"
+                      strokeWidth="6"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    
+                    {/* Open Quran Pages (White/Cream Book) */}
+                    {/* Left Page */}
+                    <Path
+                      d="M50 45 C40 38, 25 35, 12 40 L12 20 C25 15, 40 18, 50 25 Z"
+                      fill="#FFFBF0"
+                      stroke="#8A5A16"
+                      strokeWidth="1.5"
+                      strokeLinejoin="round"
+                    />
+                    {/* Right Page */}
+                    <Path
+                      d="M50 45 C60 38, 75 35, 88 40 L88 20 C75 15, 60 18, 50 25 Z"
+                      fill="#FFFBF0"
+                      stroke="#8A5A16"
+                      strokeWidth="1.5"
+                      strokeLinejoin="round"
+                    />
+                    {/* Book Spine Line */}
+                    <Path
+                      d="M50 25 V45"
+                      stroke="#633F0D"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                    />
+                    {/* Page Lines Detail (Left Page) */}
+                    <Path
+                      d="M20 27 C28 24, 38 26, 44 29 M20 32 C28 29, 38 31, 44 34 M20 37 C28 34, 38 36, 44 39"
+                      stroke="#D3C1A5"
+                      strokeWidth="1.2"
+                      strokeLinecap="round"
+                    />
+                    {/* Page Lines Detail (Right Page) */}
+                    <Path
+                      d="M80 27 C72 24, 62 26, 56 29 M80 32 C72 29, 62 31, 56 34 M80 37 C72 34, 62 36, 56 39"
+                      stroke="#D3C1A5"
+                      strokeWidth="1.2"
+                      strokeLinecap="round"
+                    />
+                    {/* Green Ribbon Bookmark hanging from center */}
+                    <Path
+                      d="M50 38 C52 46, 55 52, 53 58"
+                      stroke="#2E7D32"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                    />
+                  </Svg>
                 </View>
               </View>
-              <Ionicons name="chevron-forward" size={18} color={COLORS.gold} />
+
+              {/* Floating Bookmark Ribbon Badge bottom right */}
+              <View style={styles.bookmarkRibbonBadge}>
+                <Ionicons name="bookmark" size={16} color="#FFF" />
+              </View>
             </LinearGradient>
           </TouchableOpacity>
 
@@ -557,7 +701,7 @@ export default function HomeScreen() {
 
             <TouchableOpacity
               style={styles.gridItem}
-              onPress={() => router.push('/(tabs)/duas/index')}
+              onPress={() => router.push('/duas')}
               activeOpacity={0.8}
             >
               <LinearGradient colors={gridGradientColors} style={styles.gridGradient}>
@@ -759,6 +903,79 @@ export default function HomeScreen() {
           setShareData(null);
         }}
       />
+
+      {/* Location Selector Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={locationModalVisible}
+        onRequestClose={() => setLocationModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Location</Text>
+              <TouchableOpacity onPress={() => setLocationModalVisible(false)}>
+                <Ionicons name="close" size={24} color={COLORS.text} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.modalSubtitle}>
+              Update location coordinates to get accurate prayer times.
+            </Text>
+
+            {detectingLocation ? (
+              <View style={styles.loaderContainer}>
+                <ActivityIndicator size="large" color={COLORS.gold} />
+                <Text style={styles.loaderText}>Updating prayer timetable...</Text>
+              </View>
+            ) : (
+              <View>
+                {/* Auto GPS Option */}
+                <TouchableOpacity
+                  style={styles.gpsBtn}
+                  onPress={handleAutoDetectLocation}
+                >
+                  <Ionicons name="navigate-outline" size={20} color={COLORS.bg} />
+                  <Text style={styles.gpsBtnText}>Use Current GPS Location</Text>
+                </TouchableOpacity>
+
+                <View style={styles.modalOrRow}>
+                  <View style={styles.modalOrLine} />
+                  <Text style={styles.modalOrText}>OR</Text>
+                  <View style={styles.modalOrLine} />
+                </View>
+
+                {/* Manual Inputs */}
+                <Text style={styles.inputLabel}>City Name</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="e.g. Islamabad"
+                  placeholderTextColor={COLORS.text3}
+                  value={manualCity}
+                  onChangeText={setManualCity}
+                />
+
+                <Text style={[styles.inputLabel, { marginTop: 12 }]}>Country Name</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="e.g. Pakistan"
+                  placeholderTextColor={COLORS.text3}
+                  value={manualCountry}
+                  onChangeText={setManualCountry}
+                />
+
+                <TouchableOpacity
+                  style={styles.saveBtn}
+                  onPress={handleSaveManualCity}
+                >
+                  <Text style={styles.saveBtnText}>Save Location</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -930,44 +1147,77 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: COLORS.gold,
   },
-  resumeBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  resumeCard: {
     padding: 16,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(201,168,76,0.15)',
+    borderRadius: 24,
     marginBottom: 20,
+    position: 'relative',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 5,
   },
-  resumeLeft: {
+  bismillahText: {
+    position: 'absolute',
+    top: 6,
+    right: 14,
+    fontSize: 22,
+    fontFamily: 'Amiri_700Bold',
+    color: '#1C1B1F',
+    opacity: 0.12,
+  },
+  resumeHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 4,
   },
-  bookIconCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    backgroundColor: 'rgba(201,168,76,0.1)',
+  resumeLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#1C1B1F',
+    marginLeft: 6,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    opacity: 0.85,
+  },
+  resumeContentRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  resumeDetails: {
+    flex: 1,
+    paddingRight: 10,
+  },
+  resumeSurahName: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#1C1B1F',
+  },
+  resumeAyahNo: {
+    fontSize: 13,
+    color: 'rgba(28,27,31,0.7)',
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  quranIllustrationContainer: {
+    width: 100,
+    height: 80,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
   },
-  resumeTextContainer: {
+  bookmarkRibbonBadge: {
+    position: 'absolute',
+    bottom: 16,
+    right: 20,
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
     justifyContent: 'center',
-  },
-  resumeHeader: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: COLORS.text3,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  resumeSurah: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: COLORS.text,
-    marginTop: 2,
+    alignItems: 'center',
   },
   sectionCard: {
     padding: 20,
@@ -1194,5 +1444,111 @@ const styles = StyleSheet.create({
   progressBarFill: {
     height: '100%',
     borderRadius: 4,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#0F172A',
+    borderRadius: 24,
+    padding: 24,
+    width: '100%',
+    maxWidth: 360,
+    borderWidth: 1,
+    borderColor: 'rgba(201, 168, 76, 0.2)',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLORS.text,
+  },
+  modalSubtitle: {
+    fontSize: 13,
+    color: COLORS.text2,
+    lineHeight: 18,
+    marginBottom: 20,
+  },
+  gpsBtn: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.gold,
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  gpsBtnText: {
+    color: '#0A0E1A',
+    fontWeight: 'bold',
+    fontSize: 14,
+    marginLeft: 8,
+  },
+  modalOrRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalOrLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  modalOrText: {
+    color: COLORS.text3,
+    fontSize: 11,
+    fontWeight: 'bold',
+    marginHorizontal: 12,
+  },
+  inputLabel: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: COLORS.text2,
+    marginBottom: 6,
+    textTransform: 'uppercase',
+  },
+  modalInput: {
+    backgroundColor: '#1E293B',
+    borderWidth: 1,
+    borderColor: '#334155',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    color: COLORS.text,
+    fontSize: 14,
+  },
+  saveBtn: {
+    backgroundColor: 'rgba(201, 168, 76, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(201, 168, 76, 0.3)',
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 20,
+  },
+  saveBtnText: {
+    color: COLORS.gold,
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  loaderContainer: {
+    alignItems: 'center',
+    paddingVertical: 30,
+  },
+  loaderText: {
+    color: COLORS.text2,
+    fontSize: 13,
+    marginTop: 12,
+    fontWeight: 'bold',
   },
 });

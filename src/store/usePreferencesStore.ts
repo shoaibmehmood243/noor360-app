@@ -166,11 +166,15 @@ export const usePreferencesStore = create<PreferencesState>((set, get) => ({
   syncWithBackend: async () => {
     try {
       const state = get();
+      const firstName = (await AsyncStorage.getItem('user_first_name')) || '';
+      const lastName = (await AsyncStorage.getItem('user_last_name')) || '';
       await saveUserPreferences({
         language: state.language,
         selectedTranslation: state.selectedTranslation,
         selectedReciter: state.selectedReciter,
         notificationsEnabled: state.notificationsEnabled,
+        firstName,
+        lastName,
         metadata: {
           textSize: state.textSize,
           autoplayAudio: state.autoplayAudio,
@@ -179,7 +183,7 @@ export const usePreferencesStore = create<PreferencesState>((set, get) => ({
           asrMethod: state.asrMethod,
           responseLanguage: state.responseLanguage,
         }
-      } as any);
+      });
     } catch (e) {
       console.warn('Preferences backend sync failed (offline-first):', e);
     }
@@ -232,6 +236,13 @@ export const usePreferencesStore = create<PreferencesState>((set, get) => ({
             // Merge metadata if present
             ...(backendPrefs.metadata || {}),
           });
+
+          if (backendPrefs.firstName) {
+            await AsyncStorage.setItem('user_first_name', backendPrefs.firstName);
+          }
+          if (backendPrefs.lastName) {
+            await AsyncStorage.setItem('user_last_name', backendPrefs.lastName);
+          }
         }
       } catch (err) {
         console.warn('Failed to load settings from server background SWR (relying on cache):', err);

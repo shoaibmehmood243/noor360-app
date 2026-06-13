@@ -9,48 +9,35 @@ interface IconProps {
 export const HadithIcon: React.FC<IconProps> = ({ color, size = 24 }) => {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      {/* Scroll Background Document */}
+      {/* Top Scroll Roll */}
       <Path
-        d="M16 2H5C3.5 2 3.5 5 5 5H16C17.5 5 17.5 2 16 2Z"
+        d="M4 5C4 3.9 4.9 3 6 3H18C19.1 3 20 3.9 20 5C20 6.1 19.1 7 18 7H6C4.9 7 4 6.1 4 5Z"
         stroke={color}
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
+      {/* Scroll Sheet Sides */}
       <Path
-        d="M16 19H5C3.5 19 3.5 22 5 22H16C17.5 19 17.5 22 16 19Z"
+        d="M6 7V17M18 7V17"
         stroke={color}
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
+      {/* Bottom Scroll Roll */}
       <Path
-        d="M4 5V19M15 5V19"
+        d="M4 19C4 17.9 4.9 17 6 17H18C19.1 17 20 17.9 20 19C20 20.1 19.1 21 18 21H6C4.9 21 4 20.1 4 19Z"
         stroke={color}
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      {/* Horizontal Writing Lines on the Scroll */}
+      {/* Scroll Text Lines */}
       <Path
-        d="M7 9H12M7 13H10"
+        d="M9 11H15M9 14H13"
         stroke={color}
         strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      {/* Prophetic Quill / Feather Pen Writing on the Hadith Scroll */}
-      <Path
-        d="M21 3L11 15"
-        stroke={color}
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <Path
-        d="M19 6C17.5 7.5 15.5 9 14.5 11M20.5 4.5C19 6 17 7.5 16 9.5"
-        stroke={color}
-        strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
       />

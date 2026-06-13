@@ -19,7 +19,7 @@ import Svg, { Circle } from 'react-native-svg';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createAudioPlayer } from 'expo-audio';
-import { LinearGradient } from 'expo-linear-gradient';
+import ScreenBackground from '../../components/ui/ScreenBackground';
 
 import { COLORS } from '../../constants/theme';
 import { useThemeContext } from '../../src/context/ThemeContext';
@@ -415,12 +415,7 @@ export default function TasbeehScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right', 'top']}>
-      <LinearGradient
-        colors={isDark ? ['#0C101B', '#06080E'] : ['#FFFFFF', '#FAF8F3']}
-        style={StyleSheet.absoluteFillObject}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      />
+      <ScreenBackground />
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity 

@@ -17,6 +17,7 @@ import { COLORS } from '../../constants/theme';
 import Card from '../../components/ui/Card';
 import SkeletonLoader from '../../components/ui/SkeletonLoader';
 import EmptyState from '../../components/ui/EmptyState';
+import ScreenBackground from '../../components/ui/ScreenBackground';
 
 const COLLECTION_COLORS: Record<string, { bg: string; text: string; icon: string; name: string; arabic: string }> = {
   'sahih-bukhari': { bg: 'rgba(201, 168, 76, 0.12)', text: '#C9A84C', icon: 'book', name: 'Sahih Al-Bukhari', arabic: 'صحيح البخاري' },
@@ -27,8 +28,9 @@ const COLLECTION_COLORS: Record<string, { bg: string; text: string; icon: string
   'sunan-an-nasai': { bg: 'rgba(245, 158, 11, 0.12)', text: '#F59E0B', icon: 'bookmark', name: "Sunan An-Nasa'i", arabic: 'سنن النسائي' },
 };
 
-const getThemeMeta = (bookKey: string) => {
-  const normalized = (bookKey || '').toLowerCase().replace(/_/g, '-');
+const getThemeMeta = (bookKey: any) => {
+  const rawKey = typeof bookKey === 'object' ? (bookKey.bookSlug || bookKey.bookName || '') : bookKey;
+  const normalized = (rawKey || '').toLowerCase().replace(/_/g, '-');
   for (const [key, value] of Object.entries(COLLECTION_COLORS)) {
     if (normalized.includes(key) || key.includes(normalized)) {
       return value;
@@ -38,7 +40,7 @@ const getThemeMeta = (bookKey: string) => {
     bg: 'rgba(201, 168, 76, 0.12)',
     text: COLORS.gold,
     icon: 'book',
-    name: bookKey,
+    name: rawKey || 'Hadith Collection',
     arabic: 'الحديث الشريف',
   };
 };
@@ -73,7 +75,9 @@ export default function BookChaptersScreen() {
         const results = await hadithStore.searchHadiths(searchQuery);
         // Filter results only belonging to this book
         const filtered = (hadithStore.hadiths || []).filter((item: any) => {
-          const itemBook = (item.book || item.bookName || '').toLowerCase().replace(/_/g, '-');
+          const rawBook = item.book || item.bookName || '';
+          const bookStr = typeof rawBook === 'object' ? (rawBook.bookSlug || rawBook.bookName || '') : rawBook;
+          const itemBook = (bookStr || '').toLowerCase().replace(/_/g, '-');
           return itemBook.includes(bookSlug.toLowerCase()) || bookSlug.toLowerCase().includes(itemBook);
         });
         setSearchResults(filtered);
@@ -94,10 +98,11 @@ export default function BookChaptersScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right', 'top']}>
+      {/* <ScreenBackground /> */}
       {/* Custom Header */}
       <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton} 
+        <TouchableOpacity
+          style={styles.backButton}
           onPress={() => {
             if (router.canGoBack()) {
               router.back();

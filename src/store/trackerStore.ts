@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { saveUserPreferences } from '../api/client';
+import { saveUserPreferences, saveSalahTrackerRecord, getSalahTrackerRecords } from '../api/client';
 
 export type PrayerStatus = 'prayed' | 'missed' | 'qadha' | 'pending';
 
@@ -22,6 +22,7 @@ interface TrackerState {
   markPrayer: (date: string, prayer: keyof DayRecord, status: PrayerStatus) => Promise<void>;
   calculateStreak: () => void;
   initializeToday: (date: string) => void;
+  syncWithBackend: () => Promise<void>;
 }
 
 const defaultDayRecord: DayRecord = {
@@ -70,6 +71,13 @@ export const useTrackerStore = create<TrackerState>()(
         // Recalculate streak
         get().calculateStreak();
 
+        // Sync daily record to backend MongoDB
+        try {
+          await saveSalahTrackerRecord(date, updatedDay);
+        } catch (dbErr) {
+          console.warn('Syncing daily tracker record to server failed:', dbErr);
+        }
+
         // Sync summary statistics with server preferences
         try {
           const totalDays = Object.keys(updatedRecords).length;
@@ -98,6 +106,37 @@ export const useTrackerStore = create<TrackerState>()(
           });
         } catch (err) {
           console.warn('Syncing tracker summary to server failed:', err);
+        }
+      },
+
+      syncWithBackend: async () => {
+        try {
+          const backendRecords = await getSalahTrackerRecords();
+          if (backendRecords) {
+            const { records } = get();
+            
+            // Merge backend records with local records
+            const mergedRecords = { ...records };
+            
+            Object.keys(backendRecords).forEach((dateStr) => {
+              const localDay = mergedRecords[dateStr] || { ...defaultDayRecord };
+              const backendDay = backendRecords[dateStr];
+              
+              // Only overwrite local status if it is 'pending' or local didn't exist
+              mergedRecords[dateStr] = {
+                fajr: localDay.fajr !== 'pending' ? localDay.fajr : (backendDay.fajr || 'pending'),
+                dhuhr: localDay.dhuhr !== 'pending' ? localDay.dhuhr : (backendDay.dhuhr || 'pending'),
+                asr: localDay.asr !== 'pending' ? localDay.asr : (backendDay.asr || 'pending'),
+                maghrib: localDay.maghrib !== 'pending' ? localDay.maghrib : (backendDay.maghrib || 'pending'),
+                isha: localDay.isha !== 'pending' ? localDay.isha : (backendDay.isha || 'pending'),
+              };
+            });
+            
+            set({ records: mergedRecords });
+            get().calculateStreak();
+          }
+        } catch (err) {
+          console.warn('Syncing tracker store with backend failed:', err);
         }
       },
 

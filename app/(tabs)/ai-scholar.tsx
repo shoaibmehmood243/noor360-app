@@ -5,6 +5,7 @@ import { useIsFocused } from '@react-navigation/native';
 import { askScholar } from '../../src/api/client';
 import { COLORS } from '../../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
+import ScreenBackground from '../../components/ui/ScreenBackground';
 
 interface ChatMessage {
   id: string;
@@ -38,6 +39,7 @@ export default function AIScholarScreen() {
   if (!hasRendered) {
     return (
       <SafeAreaView style={styles.container}>
+        <ScreenBackground />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={COLORS.gold} />
         </View>
@@ -93,6 +95,7 @@ export default function AIScholarScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <ScreenBackground />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}

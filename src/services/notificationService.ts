@@ -1,7 +1,8 @@
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { saveUserPreferences } from '../api/client';
+import client, { saveUserPreferences } from '../api/client';
+import { usePrayerStore } from '../store/prayerStore';
 
 const CATEGORY_PRAYER = 'prayer-notification';
 
@@ -92,43 +93,59 @@ export const schedulePrayerNotifications = async (
     let channelId = 'default';
 
     if (settings.sound === 'Simple') {
-      soundName = 'simple_tone.wav';
-      channelId = 'channel_simple';
+      soundName = 'simple_tone.mp3';
+      channelId = 'channel_simple_v2';
     } else if (settings.sound === 'Madinah') {
-      soundName = 'adhan_madinah.wav';
-      channelId = 'channel_madinah';
+      soundName = 'adhan_madinah.mp3';
+      channelId = 'channel_madinah_v2';
     } else if (settings.sound === 'Makkah') {
-      soundName = 'adhan.wav';
-      channelId = 'channel_makkah';
+      soundName = 'adhan.mp3';
+      channelId = 'channel_makkah_v2';
     } else if (settings.sound === 'Vibrate') {
-      channelId = 'channel_vibrate';
+      channelId = 'channel_vibrate_v2';
     } else if (settings.sound === 'Silent') {
-      channelId = 'channel_silent';
+      channelId = 'channel_silent_v2';
     }
 
     if (Platform.OS === 'android') {
-      if (settings.sound === 'Silent') {
-        await Notifications.setNotificationChannelAsync(channelId, {
-          name: 'Silent Notifications',
-          importance: Notifications.AndroidImportance.LOW,
-          sound: null,
-          enableVibrate: false,
-        });
-      } else if (settings.sound === 'Vibrate') {
-        await Notifications.setNotificationChannelAsync(channelId, {
-          name: 'Vibrate Only',
-          importance: Notifications.AndroidImportance.DEFAULT,
-          sound: null,
-          enableVibrate: true,
-        });
-      } else {
-        await Notifications.setNotificationChannelAsync(channelId, {
-          name: `Adhan Alerts (${settings.sound})`,
-          importance: Notifications.AndroidImportance.MAX,
-          sound: soundName,
-          enableVibrate: true,
-          vibrationPattern: [0, 250, 250, 250],
-        });
+      try {
+        if (settings.sound === 'Silent') {
+          await Notifications.setNotificationChannelAsync(channelId, {
+            name: 'Silent Notifications',
+            importance: Notifications.AndroidImportance.LOW,
+            sound: null,
+            enableVibrate: false,
+          });
+        } else if (settings.sound === 'Vibrate') {
+          await Notifications.setNotificationChannelAsync(channelId, {
+            name: 'Vibrate Only',
+            importance: Notifications.AndroidImportance.DEFAULT,
+            sound: null,
+            enableVibrate: true,
+          });
+        } else {
+          // Strip extension for Android resource lookup (res/raw/filename)
+          const androidSoundName = soundName ? soundName.split('.')[0] : undefined;
+          await Notifications.setNotificationChannelAsync(channelId, {
+            name: `Adhan Alerts (${settings.sound})`,
+            importance: Notifications.AndroidImportance.MAX,
+            sound: androidSoundName,
+            enableVibrate: true,
+            vibrationPattern: [0, 250, 250, 250],
+          });
+        }
+      } catch (channelError) {
+        console.warn('Failed to set custom notification channel, falling back to default:', channelError);
+        try {
+          await Notifications.setNotificationChannelAsync(channelId, {
+            name: `Adhan Alerts (${settings.sound})`,
+            importance: Notifications.AndroidImportance.MAX,
+            sound: 'default',
+            enableVibrate: true,
+          });
+        } catch (innerError) {
+          console.warn('Failed fallback channel setup:', innerError);
+        }
       }
     }
 
@@ -152,6 +169,7 @@ export const schedulePrayerNotifications = async (
         type: Notifications.SchedulableTriggerInputTypes.DAILY,
         hour: hours,
         minute: minutes,
+        channelId: channelId,
       };
 
       await Notifications.scheduleNotificationAsync({
@@ -362,9 +380,10 @@ export const schedulePrayerNotifications = async (
       });
     }
 
-    // 4h. Fasting (Suhur & Iftar) Alerts
+    // 4h. Fasting (Suhur & Iftar) Alerts (Only scheduled during the holy month of Ramadan)
     const fastingEnabled = settings.fastingAlertsEnabled ?? true;
-    if (fastingEnabled && prayerTimes.Fajr && prayerTimes.Maghrib) {
+    const isRamadan = usePrayerStore.getState().hijriDate?.month?.number === 9;
+    if (fastingEnabled && isRamadan && prayerTimes.Fajr && prayerTimes.Maghrib) {
       // 10 minutes before Fajr for Suhur Ending
       const cleanFajr = prayerTimes.Fajr.split(' ')[0];
       const [fHours, fMinutes] = cleanFajr.split(':').map(Number);
@@ -410,32 +429,25 @@ export const schedulePrayerNotifications = async (
       });
     }
 
-    // 5. POST to server for tracking sync
-    const deviceId = (await AsyncStorage.getItem('noor360_device_id')) || 'unknown';
-    const baseUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.16.78:5000/api';
-    
     // Save locally
     await AsyncStorage.setItem('noor360_notification_settings', JSON.stringify(settings));
 
-    await fetch(`${baseUrl}/prayer/schedule`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        deviceId,
-        prayerTimes,
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
-      }),
-    });
-
-    // Sync preferences with user sync endpoint
-    await saveUserPreferences({
-      language: 'en',
-      selectedTranslation: 'en.sahih',
-      selectedReciter: 'ar.alafasy',
-      notificationsEnabled: true,
-    });
-  } catch (err) {
-    console.warn('Notification scheduling error:', err);
+    // 5. POST to server for tracking sync (run asynchronously in background without blocking)
+    (async () => {
+      try {
+        const deviceId = (await AsyncStorage.getItem('noor360_device_id')) || 'unknown';
+        await client.post('/prayer/schedule', {
+          deviceId,
+          prayerTimes,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+        });
+      } catch (err) {
+        console.warn('Silent fallback: Background server schedule sync failed:', err);
+      }
+    })();
+  } catch (err: any) {
+    console.error('Notification scheduling error:', err);
+    throw err;
   }
 };
 

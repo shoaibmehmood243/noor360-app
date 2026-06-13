@@ -69,18 +69,20 @@ export const useHadithStore = create<HadithState>((set, get) => ({
     }
   },
 
-  // Fetch all collections metadata (with Stale-While-Revalidate)
+  // Fetch all collections metadata (with local SQLite DB cache)
   fetchBooks: async () => {
     try {
       set({ error: null });
-      const cached = await AsyncStorage.getItem('cached_hadith_books');
-      if (cached) {
-        set({ books: JSON.parse(cached), isLoading: false });
+      
+      const { getLocalHadithBooks, cacheLocalHadithBooks } = require('../services/quranLocalDb');
+      const localBooks = await getLocalHadithBooks();
+      if (localBooks && localBooks.length > 0) {
+        set({ books: localBooks, isLoading: false });
         
         // Refresh silently in background
         getHadithBooks().then(async (data) => {
           set({ books: data });
-          await AsyncStorage.setItem('cached_hadith_books', JSON.stringify(data));
+          await cacheLocalHadithBooks(data);
         }).catch(err => console.warn('Background fetch hadith books failed:', err));
         
         return;
@@ -89,7 +91,7 @@ export const useHadithStore = create<HadithState>((set, get) => ({
       set({ isLoading: true });
       const data = await getHadithBooks();
       set({ books: data });
-      await AsyncStorage.setItem('cached_hadith_books', JSON.stringify(data));
+      await cacheLocalHadithBooks(data);
     } catch (err: any) {
       set({ error: err.message || 'Failed to fetch hadith collections list.' });
     } finally {
@@ -101,8 +103,28 @@ export const useHadithStore = create<HadithState>((set, get) => ({
   fetchChapters: async (book) => {
     try {
       set({ isLoading: true, error: null });
+
+      const { getLocalHadithChapters, cacheLocalHadithChapters } = require('../services/quranLocalDb');
+      const localChapters = await getLocalHadithChapters(book);
+      if (localChapters && localChapters.length > 0) {
+        set({ chapters: localChapters, isLoading: false });
+
+        // Refresh silently in background
+        getHadithChapters(book).then(async (data) => {
+          if (data && data.length > 0) {
+            set({ chapters: data });
+            await cacheLocalHadithChapters(book, data);
+          }
+        }).catch(err => console.warn('Background fetch hadith chapters failed:', err));
+
+        return;
+      }
+
       const data = await getHadithChapters(book);
       set({ chapters: data || [] });
+      if (data && data.length > 0) {
+        await cacheLocalHadithChapters(book, data);
+      }
     } catch (err: any) {
       console.warn('Failed to load chapters for book:', book, err.message);
       set({ chapters: [] });
@@ -111,36 +133,65 @@ export const useHadithStore = create<HadithState>((set, get) => ({
     }
   },
 
-  // Fetch paginated Hadiths of a specific collection (with Stale-While-Revalidate for page 1)
+  // Fetch paginated Hadiths of a specific collection (with SQLite Stale-While-Revalidate)
   fetchHadiths: async (book, page = 1, chapter = null) => {
-    const cacheKey = `cached_hadiths_${book}_ch${chapter ?? 'all'}_p${page}`;
+    const limit = 20;
     try {
       set({ error: null, currentBook: book, currentChapter: chapter });
 
+      const { getLocalHadiths, cacheLocalHadiths } = require('../services/quranLocalDb');
+      const localHadiths = await getLocalHadiths(book, chapter, page, limit);
+
       // Stale-While-Revalidate logic for first page
       if (page === 1) {
-        const cached = await AsyncStorage.getItem(cacheKey);
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          set({ hadiths: parsed, currentPage: 1, isLoading: false });
+        if (localHadiths && localHadiths.length > 0) {
+          const formatted = localHadiths.map((h: any) => ({
+            id: h.id,
+            hadithNumber: h.hadithNumber,
+            chapterNo: h.chapterNumber,
+            hadithArabic: h.hadithArabic,
+            hadithEnglish: h.hadithEnglish,
+            englishNarrator: h.englishNarrator,
+            arabicNarrator: h.arabicNarrator,
+          }));
+
+          set({ hadiths: formatted, currentPage: 1, isLoading: false });
 
           // Background fresh fetch
-          const limit = 20;
           getHadithsByBook(book, page, limit, chapter ?? undefined).then(async (response) => {
             const data = Array.isArray(response) ? response : (response?.data || []);
-            // Check if user is still on same book/chapter
             if (get().currentBook === book && get().currentChapter === chapter) {
               set({ hadiths: data, currentPage: 1 });
             }
-            await AsyncStorage.setItem(cacheKey, JSON.stringify(data));
+            await cacheLocalHadiths(book, data);
           }).catch(err => console.warn(`Background fetch hadiths page 1 failed for ${book}:`, err));
 
+          return;
+        }
+      } else {
+        if (localHadiths && localHadiths.length > 0) {
+          const formatted = localHadiths.map((h: any) => ({
+            id: h.id,
+            hadithNumber: h.hadithNumber,
+            chapterNo: h.chapterNumber,
+            hadithArabic: h.hadithArabic,
+            hadithEnglish: h.hadithEnglish,
+            englishNarrator: h.englishNarrator,
+            arabicNarrator: h.arabicNarrator,
+          }));
+          const currentList = get().hadiths;
+          const merged = [...currentList];
+          formatted.forEach((fh: any) => {
+            if (!merged.some((m) => m.hadithNumber === fh.hadithNumber)) {
+              merged.push(fh);
+            }
+          });
+          set({ hadiths: merged, currentPage: page });
           return;
         }
       }
 
       set({ isLoading: true });
-      const limit = 20;
       const response = await getHadithsByBook(book, page, limit, chapter ?? undefined);
       const data = Array.isArray(response) ? response : (response?.data || []);
       const currentList = get().hadiths;
@@ -151,11 +202,33 @@ export const useHadithStore = create<HadithState>((set, get) => ({
         currentPage: page,
       });
 
-      if (page === 1) {
-        await AsyncStorage.setItem(cacheKey, JSON.stringify(data));
+      if (data && data.length > 0) {
+        await cacheLocalHadiths(book, data);
       }
     } catch (err: any) {
-      set({ error: err.message || `Failed to retrieve hadith lists for ${book}.` });
+      // Offline fallback: try to load whatever is in SQLite for this page
+      try {
+        const { getLocalHadiths } = require('../services/quranLocalDb');
+        const fallbackHadiths = await getLocalHadiths(book, chapter, page, limit);
+        if (fallbackHadiths && fallbackHadiths.length > 0) {
+          const formatted = fallbackHadiths.map((h: any) => ({
+            id: h.id,
+            hadithNumber: h.hadithNumber,
+            chapterNo: h.chapterNumber,
+            hadithArabic: h.hadithArabic,
+            hadithEnglish: h.hadithEnglish,
+            englishNarrator: h.englishNarrator,
+            arabicNarrator: h.arabicNarrator,
+          }));
+          const currentList = get().hadiths;
+          const updatedList = page === 1 ? formatted : [...currentList, ...formatted];
+          set({ hadiths: updatedList, currentPage: page, error: null });
+        } else {
+          set({ error: err.message || `Failed to retrieve hadith lists for ${book}.` });
+        }
+      } catch (e) {
+        set({ error: err.message || `Failed to retrieve hadith lists for ${book}.` });
+      }
     } finally {
       set({ isLoading: false });
     }
@@ -164,7 +237,7 @@ export const useHadithStore = create<HadithState>((set, get) => ({
   // Set the active chapter for drilling down
   setActiveChapter: (chapter) => set({ activeChapter: chapter }),
 
-  // Search Hadiths globally
+  // Search Hadiths globally (network search with local offline index fallback)
   searchHadiths: async (q) => {
     if (!q.trim()) return;
     try {
@@ -172,10 +245,30 @@ export const useHadithStore = create<HadithState>((set, get) => ({
       const results = await searchHadithsApi(q);
       set({
         hadiths: results,
-        currentPage: 1, // Reset pagination to page 1 on search
+        currentPage: 1,
       });
     } catch (err: any) {
-      set({ error: err.message || 'Search failed.' });
+      console.warn('Network search failed, trying local index...', err.message);
+      try {
+        const { searchLocalHadiths } = require('../services/quranLocalDb');
+        const localResults = await searchLocalHadiths(q);
+        if (localResults && localResults.length > 0) {
+          const formatted = localResults.map((h: any) => ({
+            id: h.id,
+            hadithNumber: h.hadithNumber,
+            chapterNo: h.chapterNumber,
+            hadithArabic: h.hadithArabic,
+            hadithEnglish: h.hadithEnglish,
+            englishNarrator: h.englishNarrator,
+            arabicNarrator: h.arabicNarrator,
+          }));
+          set({ hadiths: formatted, currentPage: 1 });
+        } else {
+          set({ error: 'Search failed. You are currently offline and no local matches were found.' });
+        }
+      } catch (localErr) {
+        set({ error: 'Search failed.' });
+      }
     } finally {
       set({ isLoading: false });
     }

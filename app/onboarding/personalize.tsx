@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ActivityIndicator, Alert, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { usePreferencesStore } from '../../src/store/usePreferencesStore';
@@ -7,6 +7,11 @@ import { saveUserPreferences } from '../../src/api/client';
 import { COLORS } from '../../constants/theme';
 import { PrimaryButton } from '../../components/ui/PrimaryButton';
 import ArabicGeometricBg from '../../components/ui/ArabicGeometricBg';
+import ScreenBackground from '../../components/ui/ScreenBackground';
+
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { usePrayerStore } from '../../src/store/prayerStore';
+import { schedulePrayerNotifications } from '../../src/services/notificationService';
 
 const LEVELS: ('Beginner' | 'Learning' | 'Fluent')[] = ['Beginner', 'Learning', 'Fluent'];
 
@@ -31,6 +36,8 @@ export default function PersonalizeScreen() {
 
   const [lvl, setLvl] = useState(quranLevel);
   const [reciter, setReciter] = useState(selectedReciter);
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -40,8 +47,16 @@ export default function PersonalizeScreen() {
       setError('');
 
       // Commit choices to store
-      setQuranLevel(lvl);
-      setSelectedReciter(reciter);
+      await setQuranLevel(lvl);
+      await setSelectedReciter(reciter);
+
+      // Save user name
+      if (firstName.trim()) {
+        await AsyncStorage.setItem('user_first_name', firstName.trim());
+      }
+      if (lastName.trim()) {
+        await AsyncStorage.setItem('user_last_name', lastName.trim());
+      }
 
       // Post preferences block to Mongo backend
       try {
@@ -50,18 +65,40 @@ export default function PersonalizeScreen() {
           selectedTranslation: 'en.sahih',
           selectedReciter: reciter,
           notificationsEnabled: notificationsEnabled,
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
         });
       } catch (backendErr) {
         console.warn('Backend sync failed but continuing onboarding locally:', backendErr);
       }
 
+      // Schedule prayer notifications immediately if enabled
+      try {
+        if (notificationsEnabled) {
+          const prayerTimes = usePrayerStore.getState().prayerTimes;
+          if (prayerTimes) {
+            const savedSettings = await AsyncStorage.getItem('noor360_notification_settings');
+            const settings = savedSettings ? JSON.parse(savedSettings) : {
+              enabledPrayers: { Fajr: true, Dhuhr: true, Asr: true, Maghrib: true, Isha: true },
+              offsetMinutes: 0,
+              sound: 'Makkah',
+            };
+            await schedulePrayerNotifications(prayerTimes as any, settings);
+          }
+        }
+      } catch (schedErr) {
+        console.warn('Silent fallback: Scheduling notifications on finish failed:', schedErr);
+      }
+
       // Commit onboarding complete flag
       await saveAllPreferences();
 
-      // Clear routing tree and land inside tabs
-      router.replace('/(tabs)/quran');
+      // Clear routing tree and land inside tabs (Home / Dashboard)
+      router.replace('/(tabs)/home');
     } catch (err: any) {
+      console.error('Onboarding finish error:', err);
       setError(err.message || 'Failed to complete registration.');
+      Alert.alert('Setup Failed', err.message || 'Unable to register settings.');
     } finally {
       setLoading(false);
     }
@@ -69,6 +106,7 @@ export default function PersonalizeScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <ScreenBackground />
       <ArabicGeometricBg size={350} style={styles.bgGeometric} />
 
       <ScrollView contentContainerStyle={styles.scroll}>
@@ -83,6 +121,34 @@ export default function PersonalizeScreen() {
         <View style={styles.header}>
           <Text style={styles.title}>Personalize Your Journey</Text>
           <Text style={styles.subtitle}>Help us customize the Quranic content to match your current experience.</Text>
+        </View>
+
+        {/* Name Input Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>What should we call you?</Text>
+          <View style={styles.nameInputContainer}>
+            <View style={styles.inputWrapper}>
+              <Text style={styles.inputLabel}>First Name</Text>
+              <TextInput
+                style={styles.textInput}
+                placeholder="First Name"
+                placeholderTextColor={COLORS.text3}
+                value={firstName}
+                onChangeText={setFirstName}
+              />
+            </View>
+            <View style={styles.inputSpacer} />
+            <View style={styles.inputWrapper}>
+              <Text style={styles.inputLabel}>Last Name</Text>
+              <TextInput
+                style={styles.textInput}
+                placeholder="Last Name"
+                placeholderTextColor={COLORS.text3}
+                value={lastName}
+                onChangeText={setLastName}
+              />
+            </View>
+          </View>
         </View>
 
         {/* 1. Quran Level Selector */}
@@ -320,5 +386,35 @@ const styles = StyleSheet.create({
   },
   finishBtn: {
     marginTop: 10,
+  },
+  nameInputContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 8,
+  },
+  inputWrapper: {
+    flex: 1,
+  },
+  inputSpacer: {
+    width: 16,
+  },
+  inputLabel: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: COLORS.text3,
+    marginBottom: 6,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  textInput: {
+    backgroundColor: COLORS.bg2,
+    borderWidth: 1,
+    borderColor: COLORS.bg3,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    color: COLORS.text,
+    fontSize: 14,
   },
 });

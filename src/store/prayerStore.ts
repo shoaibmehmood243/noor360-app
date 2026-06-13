@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getFullPrayerTimes, getPrayerTimesByCity } from '../api/client';
+import * as ExpoLocation from 'expo-location';
 
 export interface Location {
   lat: number;
@@ -101,6 +102,21 @@ export const usePrayerStore = create<PrayerState>((set, get) => ({
       const saved = await AsyncStorage.getItem('noor360_saved_location');
       if (saved) {
         set({ location: JSON.parse(saved) });
+      } else {
+        const prefLat = await AsyncStorage.getItem('user_latitude');
+        const prefLon = await AsyncStorage.getItem('user_longitude');
+        if (prefLat && prefLon) {
+          const lat = parseFloat(prefLat);
+          const lon = parseFloat(prefLon);
+          set({
+            location: {
+              lat,
+              lon,
+              city: 'Detected Location',
+              country: '',
+            }
+          });
+        }
       }
     } catch (e) {
       console.warn('Failed to load saved location:', e);
@@ -110,33 +126,60 @@ export const usePrayerStore = create<PrayerState>((set, get) => ({
   fetchPrayerTimes: async (lat, lon) => {
     try {
       set({ isLoading: true, error: null });
-      const data = await getFullPrayerTimes(lat, lon);
-      
-      const hijri = data?.date?.hijri || null;
-      const formattedHijri: HijriDate | null = hijri ? {
-        date: hijri.date,
-        day: hijri.day,
-        month: {
-          number: hijri.month.number,
-          en: hijri.month.en,
-          ar: hijri.month.ar,
-        },
-        year: hijri.year,
-      } : null;
+
+      // 1. Calculate offline prayer times first (Offline-First)
+      const { calculateOfflinePrayerTimes, convertGregorianToHijriOffline } = require('../services/prayerCalculations');
+      const offlineTimes = calculateOfflinePrayerTimes(lat, lon);
+      const offlineHijri = convertGregorianToHijriOffline(new Date());
 
       set({
-        prayerTimes: data.timings,
-        hijriDate: formattedHijri,
+        prayerTimes: offlineTimes,
+        hijriDate: offlineHijri,
+        isLoading: false,
       });
+      get().startCountdown();
 
-      // Update location coords in state
-      const currentLocation = get().location;
-      const updated = { ...currentLocation, lat, lon };
+      // 2. Fetch from cloud API in the background to get precise calculations and sync
+      getFullPrayerTimes(lat, lon).then(async (data) => {
+        const hijri = data?.date?.hijri || null;
+        const formattedHijri: HijriDate | null = hijri ? {
+          date: hijri.date,
+          day: hijri.day,
+          month: {
+            number: hijri.month.number,
+            en: hijri.month.en,
+            ar: hijri.month.ar,
+          },
+          year: hijri.year,
+        } : null;
+
+        set({
+          prayerTimes: data.timings,
+          hijriDate: formattedHijri || offlineHijri,
+        });
+        get().startCountdown();
+      }).catch(err => console.warn('Background fetch prayer times failed:', err));
+
+      // Reverse-geocode latitude/longitude to resolve actual city and country
+      let city = get().location.city || 'Makkah Al-Mukarramah';
+      let country = get().location.country || 'Saudi Arabia';
+      try {
+        const { status } = await ExpoLocation.getForegroundPermissionsAsync();
+        if (status === 'granted') {
+          const reverseGeocode = await ExpoLocation.reverseGeocodeAsync({ latitude: lat, longitude: lon });
+          if (reverseGeocode && reverseGeocode.length > 0) {
+            const address = reverseGeocode[0];
+            city = address.city || address.subregion || address.district || address.region || 'Detected Location';
+            country = address.country || '';
+          }
+        }
+      } catch (e) {
+        console.warn('Silent fallback: Reverse geocoding coordinates failed.', e);
+      }
+
+      const updated = { lat, lon, city, country };
       set({ location: updated });
       await AsyncStorage.setItem('noor360_saved_location', JSON.stringify(updated));
-
-      // Trigger countdown calculation
-      get().startCountdown();
     } catch (err: any) {
       set({ error: err.message || 'Failed to fetch prayer times by coordinates.' });
     } finally {
@@ -161,7 +204,6 @@ export const usePrayerStore = create<PrayerState>((set, get) => ({
         year: hijri.year,
       } : null;
 
-      // Extract coordinates returned by Aladhan Meta
       const lat = parseFloat(data?.meta?.latitude || '21.4225');
       const lon = parseFloat(data?.meta?.longitude || '39.8262');
 
@@ -175,6 +217,25 @@ export const usePrayerStore = create<PrayerState>((set, get) => ({
       await AsyncStorage.setItem('noor360_saved_location', JSON.stringify(updated));
       get().startCountdown();
     } catch (err: any) {
+      // Fallback: If offline, check if we have saved location coordinates
+      const saved = await AsyncStorage.getItem('noor360_saved_location');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.city.toLowerCase() === city.toLowerCase() || !city) {
+          const { calculateOfflinePrayerTimes, convertGregorianToHijriOffline } = require('../services/prayerCalculations');
+          const offlineTimes = calculateOfflinePrayerTimes(parsed.lat, parsed.lon);
+          const offlineHijri = convertGregorianToHijriOffline(new Date());
+
+          set({
+            prayerTimes: offlineTimes,
+            hijriDate: offlineHijri,
+            location: parsed,
+            error: null,
+          });
+          get().startCountdown();
+          return;
+        }
+      }
       set({ error: err.message || 'Failed to fetch prayer times for city.' });
     } finally {
       set({ isLoading: false });

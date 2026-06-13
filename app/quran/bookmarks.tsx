@@ -12,6 +12,7 @@ import Card from '../../components/ui/Card';
 import GoldBadge from '../../components/ui/GoldBadge';
 import ArabicText from '../../components/ui/ArabicText';
 import EmptyState from '../../components/ui/EmptyState';
+import ScreenBackground from '../../components/ui/ScreenBackground';
 import { useThemeContext } from '../../src/context/ThemeContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -261,6 +262,7 @@ export default function BookmarksNotesScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right', 'top']}>
+      <ScreenBackground />
       {/* Dynamic Header */}
       <View style={styles.header}>
         <TouchableOpacity

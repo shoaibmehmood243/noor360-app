@@ -18,6 +18,7 @@ import { COLORS } from '../../../constants/theme';
 import Card from '../../../components/ui/Card';
 import ArabicGeometricBg from '../../../components/ui/ArabicGeometricBg';
 import { Dua, getDuasByCategory } from '../../../src/api/client';
+import ScreenBackground from '../../../components/ui/ScreenBackground';
 import AppHeader from '../../../components/AppHeader';
 import TasbeehIcon from '../../../components/icons/TasbeehIcon';
 import NamesIcon from '../../../components/icons/NamesIcon';
@@ -108,6 +109,7 @@ export default function DuasIndexScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right']}>
+      <ScreenBackground />
       {/* Background patterns */}
       <ArabicGeometricBg size={420} style={styles.backgroundOverlay} />
       <AppHeader onSettingsPress={() => router.push('/settings')} />
@@ -242,9 +244,9 @@ export default function DuasIndexScreen() {
 
           {/* Quick Tools Row */}
           <Text style={styles.sectionTitle}>Spiritual Companions</Text>
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false} 
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.toolsScroll}
           >
             <TouchableOpacity style={styles.toolCardScroll} onPress={() => router.push('/duas/tasbeeh')}>
@@ -416,7 +418,7 @@ const styles = StyleSheet.create({
   },
   heroDuaArabic: {
     fontSize: 18,
-    color: COLORS.gold2,
+    color: COLORS.gold,
     textAlign: 'right',
     fontFamily: 'Amiri_400Regular',
     lineHeight: 28,
@@ -535,7 +537,7 @@ const styles = StyleSheet.create({
   duaArabic: {
     fontSize: 19,
     fontFamily: 'Amiri_400Regular',
-    color: COLORS.gold2,
+    color: COLORS.gold,
     textAlign: 'right',
     lineHeight: 30,
     marginBottom: 10,

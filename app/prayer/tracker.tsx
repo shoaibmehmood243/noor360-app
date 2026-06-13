@@ -21,6 +21,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Card from '../../components/ui/Card';
 import ArabicGeometricBg from '../../components/ui/ArabicGeometricBg';
 import DuaShareModal, { ShareData } from '../../components/ui/DuaShareModal';
+import ScreenBackground from '../../components/ui/ScreenBackground';
 
 const { width } = Dimensions.get('window');
 
@@ -229,12 +230,7 @@ export default function SalahTrackerScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right', 'top']}>
-      <LinearGradient
-        colors={isDark ? ['#0C101B', '#06080E'] : ['#FFFFFF', '#FAF8F3']}
-        style={StyleSheet.absoluteFillObject}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      />
+      <ScreenBackground />
       {/* Background patterns */}
       <ArabicGeometricBg size={420} style={styles.backgroundOverlay} />
 

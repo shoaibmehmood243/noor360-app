@@ -2,7 +2,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Base URL points to the noor360-backend
-const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.71.78:5000/api';
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.5:5000/api';
 
 /**
  * Retrieves the stored unique device identifier, or generates and stores one if none exists.
@@ -45,6 +45,7 @@ const getRequestKey = (config: any) => {
 const CACHE_FIRST_PATHS = [
   '/quran/surahs',
   '/quran/surah/',
+  '/quran/juz/',
   '/hadith/books',
   '/hadith/',
   '/duas/categories',
@@ -238,12 +239,17 @@ export const getSurahDetail = async (id: number, translation = 'en.sahih'): Prom
   return res.data.data;
 };
 
+export const getJuzDetail = async (id: number, translation = 'en.sahih'): Promise<any> => {
+  const res = await client.get(`/quran/juz/${id}`, { params: { translation } });
+  return res.data.data;
+};
+
 export const getVerseOfDay = async (): Promise<any> => {
   const res = await client.get('/quran/verse-of-day');
   return res.data.data;
 };
 
-export const searchQuran = async (q: string, lang = 'en'): Promise<any[]> => {
+export const searchQuran = async (q: string, lang = 'en.sahih'): Promise<any[]> => {
   const res = await client.get('/quran/search', { params: { q, lang } });
   return res.data.data;
 };
@@ -355,6 +361,8 @@ export const saveUserPreferences = async (preferences: {
   selectedTranslation: string;
   selectedReciter: string;
   notificationsEnabled: boolean;
+  firstName?: string;
+  lastName?: string;
   metadata?: any;
 }): Promise<any> => {
   const deviceId = await getOrCreateDeviceId();
@@ -389,6 +397,21 @@ export const getBookmarks = async (): Promise<any[]> => {
 export const deleteBookmark = async (bookmarkId: string): Promise<any> => {
   const res = await client.delete(`/user/bookmarks/${bookmarkId}`);
   return res.data;
+};
+
+export const saveSalahTrackerRecord = async (
+  date: string,
+  record: { fajr?: string; dhuhr?: string; asr?: string; maghrib?: string; isha?: string }
+): Promise<any> => {
+  const deviceId = await getOrCreateDeviceId();
+  const res = await client.post('/user/salah-tracker', { deviceId, date, ...record });
+  return res.data.data;
+};
+
+export const getSalahTrackerRecords = async (): Promise<Record<string, any>> => {
+  const deviceId = await getOrCreateDeviceId();
+  const res = await client.get(`/user/salah-tracker/${deviceId}`);
+  return res.data.data;
 };
 
 /**

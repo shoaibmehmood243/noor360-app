@@ -22,6 +22,7 @@ import { useDuasStore } from '../../src/store/duasStore';
 import { COLORS } from '../../constants/theme';
 import Card from '../../components/ui/Card';
 import ArabicGeometricBg from '../../components/ui/ArabicGeometricBg';
+import ScreenBackground from '../../components/ui/ScreenBackground';
 import { Dua } from '../../src/api/client';
 import DuaShareModal from '../../components/ui/DuaShareModal';
 
@@ -237,6 +238,7 @@ export default function BookmarksScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right', 'top']}>
+      <ScreenBackground />
       {/* Background ornament */}
       <ArabicGeometricBg size={350} style={styles.backgroundOverlay} />
 

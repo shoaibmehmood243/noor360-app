@@ -3,8 +3,8 @@ import { StyleSheet, Text, View, FlatList, ScrollView, TouchableOpacity, Share, 
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getJuzDetail } from '../../../src/api/client';
 
 import { useQuran } from '../../../src/hooks/useQuran';
 import { AudioPlayer } from '../../../src/services/audioPlayer';
@@ -70,7 +70,23 @@ export default function JuzReaderScreen() {
     try {
       setLoading(true);
 
-      // 1. Try displaying cached data instantly (Stale-While-Revalidate)
+      // 1. Try loading from local SQLite database first (Offline-First)
+      const { getLocalJuzVerses } = require('../../../src/services/quranLocalDb');
+      const localVerses = await getLocalJuzVerses(juzNum);
+      if (localVerses && localVerses.length > 0) {
+        const juzDetails = {
+          number: juzNum,
+          ayahs: localVerses,
+        };
+        setJuzData(juzDetails);
+        setLoading(false);
+
+        // If online, refresh silently in the background
+        fetchJuzFromApi(juzNum, translation, cacheKey);
+        return;
+      }
+
+      // 2. Try displaying cached data instantly (Stale-While-Revalidate)
       const cached = await AsyncStorage.getItem(cacheKey);
       if (cached) {
         const parsed = JSON.parse(cached);
@@ -82,7 +98,7 @@ export default function JuzReaderScreen() {
         return;
       }
 
-      // 2. Fetch from API if no cache exists
+      // 3. Fetch from API if no cache exists
       await fetchJuzFromApi(juzNum, translation, cacheKey);
     } catch (e) {
       console.warn('Failed to load Juz details:', e);
@@ -92,28 +108,11 @@ export default function JuzReaderScreen() {
 
   const fetchJuzFromApi = async (juzNumber: number, translation: string, cacheKey: string) => {
     try {
-      // Fetch Arabic Uthmani text of Juz
-      const arabicUrl = `https://api.alquran.cloud/v1/juz/${juzNumber}/quran-uthmani`;
-      const arabicRes = await axios.get(arabicUrl);
-      const arabicAyahs = arabicRes.data.data.ayahs;
-
-      let combinedAyahs = arabicAyahs;
-
-      // If translation selected, fetch translation and combine
-      if (translation && translation !== 'none') {
-        const transUrl = `https://api.alquran.cloud/v1/juz/${juzNumber}/${translation}`;
-        const transRes = await axios.get(transUrl);
-        const transAyahs = transRes.data.data.ayahs;
-
-        combinedAyahs = arabicAyahs.map((ayah: any, index: number) => ({
-          ...ayah,
-          translation: transAyahs[index]?.text || '',
-        }));
-      }
+      const data = await getJuzDetail(juzNumber, translation || 'en.sahih');
 
       const juzDetails = {
         number: juzNumber,
-        ayahs: combinedAyahs,
+        ayahs: data.ayahs,
       };
 
       setJuzData(juzDetails);

@@ -20,6 +20,7 @@ import { getHadithOfDay } from '../../src/api/client';
 import { COLORS } from '../../constants/theme';
 import { useThemeContext } from '../../src/context/ThemeContext';
 import { LinearGradient } from 'expo-linear-gradient';
+import ScreenBackground from '../../components/ui/ScreenBackground';
 import AppHeader from '../../components/AppHeader';
 import Card from '../../components/ui/Card';
 import GoldBadge from '../../components/ui/GoldBadge';
@@ -99,8 +100,18 @@ const BOOK_METADATA: Array<{
     },
   ];
 
-const getThemeMeta = (bookKey: string) => {
-  const normalized = (bookKey || '').toLowerCase().replace(/_/g, '-');
+const getBookKey = (book: any): string => {
+  if (!book) return '';
+  if (typeof book === 'string') return book;
+  if (typeof book === 'object') {
+    return book.bookSlug || book.bookName || '';
+  }
+  return '';
+};
+
+const getThemeMeta = (bookKey: any) => {
+  const normalizedKey = getBookKey(bookKey);
+  const normalized = (normalizedKey || '').toLowerCase().replace(/_/g, '-');
   const match = BOOK_METADATA.find(b => normalized.includes(b.slug) || b.slug.includes(normalized));
   if (match) {
     return {
@@ -114,7 +125,7 @@ const getThemeMeta = (bookKey: string) => {
     bg: 'rgba(201, 168, 76, 0.12)',
     text: COLORS.gold,
     icon: 'book',
-    name: bookKey,
+    name: normalizedKey || 'Hadith Collection',
   };
 };
 
@@ -204,7 +215,9 @@ export default function HadithTabScreen() {
   };
 
   const handleTriggerNarration = (hadith: any) => {
-    if (narratingHadith?.hadithNumber === hadith.hadithNumber && narratingHadith?.book === hadith.book) {
+    const currentBookKey = getBookKey(narratingHadith?.book || narratingHadith?.bookName);
+    const newBookKey = getBookKey(hadith.book || hadith.bookName);
+    if (narratingHadith?.hadithNumber === hadith.hadithNumber && currentBookKey === newBookKey) {
       setIsNarrating(!isNarrating);
     } else {
       setNarratingHadith(hadith);
@@ -227,10 +240,11 @@ export default function HadithTabScreen() {
   };
 
   const handleCreateHadithNote = (item: any) => {
+    const itemBookKey = getBookKey(item.book || item.bookName);
     router.push({
       pathname: '/quran/bookmarks',
       params: {
-        addNoteRef: `${item.book || item.bookName}:${item.hadithNumber}`,
+        addNoteRef: `${itemBookKey}:${item.hadithNumber}`,
         arabicText: item.hadithArabic,
         reference: `${getThemeMeta(item.book || item.bookName).name} #${item.hadithNumber}`,
       },
@@ -240,12 +254,7 @@ export default function HadithTabScreen() {
   if (!hasRendered) {
     return (
       <SafeAreaView style={styles.container}>
-        <LinearGradient
-          colors={isDark ? ['#0C101B', '#06080E'] : ['#FFFFFF', '#FAF8F3']}
-          style={StyleSheet.absoluteFillObject}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        />
+        <ScreenBackground />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={COLORS.gold} />
         </View>
@@ -257,25 +266,22 @@ export default function HadithTabScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right']}>
-      <LinearGradient
-        colors={isDark ? ['#0C101B', '#06080E'] : ['#FFFFFF', '#FAF8F3']}
-        style={StyleSheet.absoluteFillObject}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      />
+      <ScreenBackground />
       {/* Brand Header */}
       <AppHeader onSettingsPress={() => router.push('/settings')} />
 
       {/* Main Container */}
       <FlatList
         data={isSearching ? hadithStore.hadiths : BOOK_METADATA}
-        keyExtractor={(item, index) => isSearching ? `${item.book || item.bookName}_${item.hadithNumber}_${index}` : item.slug}
+        keyExtractor={(item, index) => isSearching ? `${getBookKey(item.book || item.bookName)}_${item.hadithNumber}_${index}` : item.slug}
         contentContainerStyle={styles.listPadding}
         renderItem={({ item }) => {
           if (isSearching) {
             const themeMeta = getThemeMeta(item.book || item.bookName);
-            const isBookmarked = hadithStore.isBookmarked(`${item.book || item.bookName}:${item.hadithNumber}`);
-            const isCurrentlyNarrating = narratingHadith?.hadithNumber === item.hadithNumber && (narratingHadith?.book === item.book || narratingHadith?.bookName === item.bookName);
+            const itemBookKey = getBookKey(item.book || item.bookName);
+            const isBookmarked = hadithStore.isBookmarked(`${itemBookKey}:${item.hadithNumber}`);
+            const isCurrentlyNarrating = narratingHadith?.hadithNumber === item.hadithNumber &&
+              getBookKey(narratingHadith?.book || narratingHadith?.bookName) === itemBookKey;
 
             return (
               <HadithItem
@@ -287,7 +293,7 @@ export default function HadithTabScreen() {
                 language={language}
                 onTriggerNarration={handleTriggerNarration}
                 onToggleBookmark={async () => {
-                  const refId = `${item.book || item.bookName}:${item.hadithNumber}`;
+                  const refId = `${itemBookKey}:${item.hadithNumber}`;
                   if (isBookmarked) {
                     await hadithStore.removeBookmark(refId);
                   } else {

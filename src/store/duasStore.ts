@@ -46,6 +46,36 @@ export const useDuasStore = create<DuasState>()(
       fetchCategories: async () => {
         try {
           set({ error: null });
+
+          // 1. Try displaying local SQLite categories list (Offline-First)
+          const { getLocalDuaCategories } = require('../services/quranLocalDb');
+          const localCats = await getLocalDuaCategories();
+          
+          const formatCategoryName = (slug: string): string => {
+            return slug
+              .split('-')
+              .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+              .join(' ');
+          };
+
+          if (localCats && localCats.length > 0) {
+            const formatted = localCats.map((c: any) => ({
+              id: c.category,
+              name: formatCategoryName(c.category),
+              count: c.count,
+            }));
+            set({ categories: formatted, isLoading: false });
+
+            // Refresh from backend silently in the background
+            getDuaCategories().then(async (categories) => {
+              set({ categories });
+              await AsyncStorage.setItem('cached_dua_categories', JSON.stringify(categories));
+            }).catch(err => console.warn('Background fetch dua categories failed:', err));
+
+            return;
+          }
+
+          // 2. Fallback to AsyncStorage cache
           const cached = await AsyncStorage.getItem('cached_dua_categories');
           if (cached) {
             set({ categories: JSON.parse(cached), isLoading: false });
@@ -59,6 +89,7 @@ export const useDuasStore = create<DuasState>()(
             return;
           }
 
+          // 3. Fallback to remote API call
           set({ isLoading: true });
           const categories = await getDuaCategories();
           set({ categories, isLoading: false });
@@ -72,23 +103,50 @@ export const useDuasStore = create<DuasState>()(
         const cacheKey = `cached_duas_cat_${category}`;
         try {
           set({ error: null });
-          const cached = await AsyncStorage.getItem(cacheKey);
-          if (cached) {
-            set({ duas: JSON.parse(cached), isLoading: false });
-            
-            // Background refresh
+
+          // 1. Try displaying local SQLite duas first (Offline-First)
+          const { getLocalDuasByCategory } = require('../services/quranLocalDb');
+          const localDuas = await getLocalDuasByCategory(category);
+          if (localDuas && localDuas.length > 0) {
+            set({ duas: localDuas, isLoading: false });
+
+            // Background refresh from cloud API
             getDuasByCategory(category).then(async (duas) => {
-              set({ duas });
-              await AsyncStorage.setItem(cacheKey, JSON.stringify(duas));
+              if (Array.isArray(duas)) {
+                set({ duas });
+                await AsyncStorage.setItem(cacheKey, JSON.stringify(duas));
+              }
             }).catch(err => console.warn(`Background fetch duas for cat ${category} failed:`, err));
 
             return;
           }
 
+          // 2. Fallback to AsyncStorage cache
+          const cached = await AsyncStorage.getItem(cacheKey);
+          if (cached && cached !== 'undefined') {
+            const parsed = JSON.parse(cached);
+            set({ duas: Array.isArray(parsed) ? parsed : [], isLoading: false });
+            
+            // Background refresh
+            getDuasByCategory(category).then(async (duas) => {
+              if (Array.isArray(duas)) {
+                set({ duas });
+                await AsyncStorage.setItem(cacheKey, JSON.stringify(duas));
+              }
+            }).catch(err => console.warn(`Background fetch duas for cat ${category} failed:`, err));
+
+            return;
+          }
+
+          // 3. Fallback to remote API
           set({ isLoading: true });
           const duas = await getDuasByCategory(category);
-          set({ duas, isLoading: false });
-          await AsyncStorage.setItem(cacheKey, JSON.stringify(duas));
+          if (Array.isArray(duas)) {
+            set({ duas, isLoading: false });
+            await AsyncStorage.setItem(cacheKey, JSON.stringify(duas));
+          } else {
+            set({ duas: [], isLoading: false });
+          }
         } catch (err: any) {
           set({ error: err.message || 'Failed to fetch supplications', isLoading: false });
         }
@@ -96,6 +154,34 @@ export const useDuasStore = create<DuasState>()(
 
       fetchDuaOfDay: async () => {
         try {
+          // 1. Calculate deterministic index and fetch from SQLite first (Offline-First)
+          const today = new Date();
+          const start = new Date(today.getFullYear(), 0, 0);
+          const diff = today.getTime() - start.getTime();
+          const oneDay = 1000 * 60 * 60 * 24;
+          const dayOfYear = Math.floor(diff / oneDay);
+
+          const { getDbConnection } = require('../services/quranLocalDb');
+          const db = await getDbConnection();
+          const totalRes = (await db.getFirstAsync('SELECT COUNT(*) as count FROM duas')) as { count: number } | null;
+          const totalCount = totalRes?.count ?? 60;
+          
+          const index = ((dayOfYear + today.getFullYear()) % totalCount) + 1;
+          const localDuaOfDay = (await db.getFirstAsync('SELECT * FROM duas WHERE id = ?', [index])) as Dua | null;
+          
+          if (localDuaOfDay) {
+            set({ duaOfDay: localDuaOfDay });
+            
+            // Background refresh
+            getDuaOfDay().then(async (duaOfDay) => {
+              set({ duaOfDay });
+              await AsyncStorage.setItem('cached_dua_of_day', JSON.stringify(duaOfDay));
+            }).catch(err => console.warn('Background fetch dua of day failed:', err));
+
+            return;
+          }
+
+          // 2. Fallback to AsyncStorage cache
           const cached = await AsyncStorage.getItem('cached_dua_of_day');
           if (cached) {
             set({ duaOfDay: JSON.parse(cached) });
@@ -109,6 +195,7 @@ export const useDuasStore = create<DuasState>()(
             return;
           }
 
+          // 3. Fallback to API
           const duaOfDay = await getDuaOfDay();
           set({ duaOfDay });
           await AsyncStorage.setItem('cached_dua_of_day', JSON.stringify(duaOfDay));
@@ -119,30 +206,19 @@ export const useDuasStore = create<DuasState>()(
 
       fetchAllDuas: async () => {
         try {
-          const { categories } = get();
-          let cats = categories;
-          if (cats.length === 0) {
-            cats = await getDuaCategories();
-            set({ categories: cats });
-          }
-
+          // Query all Duas instantly from local SQLite DB
+          const { getDbConnection } = require('../services/quranLocalDb');
+          const db = await getDbConnection();
+          const allLocalDuas = (await db.getAllAsync('SELECT * FROM duas')) as Dua[];
+          
           const allDuasMap: Record<number, Dua> = {};
-          await Promise.all(
-            cats.map(async (cat) => {
-              try {
-                const duasList = await getDuasByCategory(cat.id);
-                duasList.forEach((d) => {
-                  allDuasMap[d.id] = d;
-                });
-              } catch (e) {
-                console.warn(`Failed to prefetch duas for category ${cat.id}:`, e);
-              }
-            })
-          );
+          allLocalDuas.forEach((d: Dua) => {
+            allDuasMap[d.id] = d;
+          });
 
           set({ allDuas: allDuasMap });
         } catch (err) {
-          console.warn('Failed to fetch all duas details:', err);
+          console.warn('Failed to fetch all duas details from SQLite:', err);
         }
       },
 

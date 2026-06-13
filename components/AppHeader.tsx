@@ -32,10 +32,10 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
       <ArabicGeometricBg size={300} style={styles.backgroundMask} />
 
       {/* 2. Linear Gradient Mask fading into the dynamic active background */}
-      <LinearGradient
+      {/* <LinearGradient
         colors={gradientColors}
         style={StyleSheet.absoluteFillObject}
-      />
+      /> */}
 
       {/* 3. Top Action row */}
       <View style={styles.topRow}>
@@ -85,7 +85,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
 const styles = StyleSheet.create({
   headerContainer: {
     width: '100%',
-    backgroundColor: '#0A0E1A',
+    backgroundColor: 'transparent',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingBottom: 16,
@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
   bismillahArabic: {
     fontSize: 20,
     fontFamily: 'Amiri_700Bold',
-    color: COLORS.gold2,
+    color: COLORS.gold,
     textAlign: 'center',
   },
   bismillahEnglish: {

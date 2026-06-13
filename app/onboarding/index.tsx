@@ -6,6 +6,7 @@ import { usePreferencesStore } from '../../src/store/usePreferencesStore';
 import { COLORS } from '../../constants/theme';
 import { PrimaryButton } from '../../components/ui/PrimaryButton';
 import ArabicGeometricBg from '../../components/ui/ArabicGeometricBg';
+import ScreenBackground from '../../components/ui/ScreenBackground';
 
 const LANGUAGES = [
   { code: 'en', name: 'English', flag: '🇬🇧' },
@@ -49,12 +50,13 @@ export default function WelcomeScreen() {
 
   const handleContinue = () => {
     if (selected) {
-      router.push('/onboarding/location');
+      router.push('/onboarding/walkthrough');
     }
   };
 
   return (
     <SafeAreaView style={styles.container}>
+      <ScreenBackground />
       <ArabicGeometricBg size={350} style={styles.bgGeometric} />
 
       <ScrollView contentContainerStyle={styles.scroll}>
@@ -143,6 +145,7 @@ const styles = StyleSheet.create({
     height: 68,
     borderRadius: 18,
     backgroundColor: COLORS.gold,
+    display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: COLORS.gold,
@@ -156,6 +159,7 @@ const styles = StyleSheet.create({
     fontSize: 40,
     fontFamily: 'Amiri_700Bold',
     color: '#0A0E1A',
+    marginTop: -25,
   },
   appName: {
     fontSize: 24,

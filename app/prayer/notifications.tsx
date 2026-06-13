@@ -20,7 +20,7 @@ import { usePrayerStore } from '../../src/store/prayerStore';
 import { schedulePrayerNotifications, NotificationSettings } from '../../src/services/notificationService';
 import { COLORS } from '../../constants/theme';
 import { useThemeContext } from '../../src/context/ThemeContext';
-import { LinearGradient } from 'expo-linear-gradient';
+import ScreenBackground from '../../components/ui/ScreenBackground';
 import Card from '../../components/ui/Card';
 import ArabicGeometricBg from '../../components/ui/ArabicGeometricBg';
 
@@ -148,16 +148,22 @@ export default function NotificationSettingsScreen() {
       }
 
       let soundFile: string | undefined = 'default';
+      let channelId = 'default';
       if (sound === 'Silent') {
         soundFile = undefined;
+        channelId = 'channel_silent_v2';
       } else if (sound === 'Simple') {
-        soundFile = 'simple_tone.wav';
+        soundFile = 'simple_tone.mp3';
+        channelId = 'channel_simple_v2';
       } else if (sound === 'Madinah') {
-        soundFile = 'adhan_madinah.wav';
+        soundFile = 'adhan_madinah.mp3';
+        channelId = 'channel_madinah_v2';
       } else if (sound === 'Makkah') {
-        soundFile = 'adhan.wav';
+        soundFile = 'adhan.mp3';
+        channelId = 'channel_makkah_v2';
       } else if (sound === 'Vibrate') {
         soundFile = 'default';
+        channelId = 'channel_vibrate_v2';
       }
 
       // 1. Schedule local OS banner notification (triggers in 2s)
@@ -171,6 +177,7 @@ export default function NotificationSettingsScreen() {
           type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
           seconds: 2,
           repeats: false,
+          channelId: channelId,
         },
       });
 
@@ -193,12 +200,7 @@ export default function NotificationSettingsScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right', 'top']}>
-      <LinearGradient
-        colors={isDark ? ['#0C101B', '#06080E'] : ['#FFFFFF', '#FAF8F3']}
-        style={StyleSheet.absoluteFillObject}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      />
+      <ScreenBackground />
       {/* Arabic Geometric Overlay Background */}
       <ArabicGeometricBg size={400} style={styles.backgroundOverlay} />
 

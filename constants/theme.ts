@@ -4,10 +4,10 @@ export const LIGHT_COLORS = {
   bg: '#F8F9FA',      // Premium warm off-white background
   bg2: '#FFFFFF',     // Clean pure white for cards and cards deck
   bg3: '#E5E7EB',     // Gray-200 border lines and inactive segment indicators
-  gold: '#B58920',    // Rich dark gold for high-contrast text on light mode
-  gold2: '#C9A84C',   // Bright gold accent
-  teal: '#B58920',    // Aligned to Gold for unified gold-themed branding
-  teal2: '#C9A84C',   // Aligned to Gold2
+  gold: '#C9A84C',
+  gold2: '#E8C97A',
+  teal: '#C9A84C',    // Aligned to Gold for unified gold-themed branding
+  teal2: '#E8C97A',  // Aligned to Gold2
   text: '#1F2937',    // Premium dark charcoal (gray-800) for scripture & main titles
   text2: '#4B5563',   // Slate gray (gray-600) for translations
   text3: '#9CA3AF',   // Cool gray (gray-400) for subheaders and captions

@@ -1,0 +1,26 @@
+[
+  {
+    "bookSlug": "sahih-bukhari",
+    "bookName": "Sahih Al-Bukhari",
+    "writerName": "Imam Bukhari",
+    "about": "Most authentic Hadith book containing the teachings and actions of Prophet Muhammad (PBUH)."
+  },
+  {
+    "bookSlug": "sahih-muslim",
+    "bookName": "Sahih Muslim",
+    "writerName": "Imam Muslim",
+    "about": "Second most authentic Hadith collection compiled by Imam Muslim ibn al-Hajjaj."
+  },
+  {
+    "bookSlug": "sunan-abi-dawud",
+    "bookName": "Sunan Abi Dawud",
+    "writerName": "Imam Abu Dawud",
+    "about": "A widely respected collection of Hadiths compiled by Imam Abu Dawud."
+  },
+  {
+    "bookSlug": "jami-al-tirmidhi",
+    "bookName": "Jami Al-Tirmidhi",
+    "writerName": "Imam Tirmidhi",
+    "about": "One of the six major Hadith collections containing valuable annotations by Imam Tirmidhi."
+  }
+]

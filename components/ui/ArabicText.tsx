@@ -14,7 +14,7 @@ interface ArabicTextProps {
 export const ArabicText: React.FC<ArabicTextProps> = ({
   text,
   size = 18,
-  color = COLORS.gold2,
+  color = COLORS.gold,
   bold = false,
   style,
 }) => {

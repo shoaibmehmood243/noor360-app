@@ -81,12 +81,13 @@ export const useQuranStore = create<QuranState>((set, get) => ({
     try {
       set({ error: null });
 
-      // 1. Try displaying cached data instantly (Stale-While-Revalidate)
-      const cached = await AsyncStorage.getItem('cached_surahs');
-      if (cached) {
-        set({ surahs: JSON.parse(cached), isLoading: false });
+      // 1. Try displaying local SQLite data instantly (Offline-First)
+      const { getLocalSurahs } = require('../services/quranLocalDb');
+      const localSurahs = await getLocalSurahs();
+      if (localSurahs && localSurahs.length > 0) {
+        set({ surahs: localSurahs, isLoading: false });
         
-        // Refresh silently in the background
+        // Refresh silently in the background from the cloud API to stay updated
         getQuranSurahs().then(async (data) => {
           set({ surahs: data });
           await AsyncStorage.setItem('cached_surahs', JSON.stringify(data));
@@ -95,6 +96,7 @@ export const useQuranStore = create<QuranState>((set, get) => ({
         return;
       }
 
+      // 2. Fallback to API if SQLite query failed
       set({ isLoading: true });
       const data = await getQuranSurahs();
       set({ surahs: data });
@@ -113,7 +115,47 @@ export const useQuranStore = create<QuranState>((set, get) => ({
     try {
       set({ error: null });
 
-      // 1. Return cached copy instantly if it exists
+      // 1. Check offline SQLite database first
+      const { getLocalSurahVerses, cacheSurahVerses } = require('../services/quranLocalDb');
+      const localVerses = await getLocalSurahVerses(id);
+      
+      // Get Surah metadata from loaded list to build complete object
+      const surahMeta = get().surahs.find(s => s.number === id);
+      
+      if (localVerses && localVerses.length > 0 && surahMeta) {
+        // Map local SQLite columns back to expected UI properties
+        const formattedAyahs = localVerses.map((v: any) => ({
+          number: v.verseNumber,
+          numberInSurah: v.verseNumber,
+          text: v.text,
+          translation: v.translation,
+        }));
+
+        const localSurahObj = {
+          number: surahMeta.number,
+          name: surahMeta.name,
+          englishName: surahMeta.englishName,
+          englishNameTranslation: surahMeta.englishNameTranslation,
+          revelationType: surahMeta.revelationType,
+          numberOfAyahs: surahMeta.numberOfAyahs,
+          ayahs: formattedAyahs,
+        };
+
+        set({ currentSurah: localSurahObj, isLoading: false });
+
+        // If online, optionally refresh in the background silently
+        getSurahDetail(id, translation).then(async (data) => {
+          if (get().selectedTranslation === translation) {
+            set({ currentSurah: data });
+          }
+          await cacheSurahVerses(id, data.ayahs);
+          await AsyncStorage.setItem(cacheKey, JSON.stringify(data));
+        }).catch((err) => console.warn(`Background fetch surah ${id} failed:`, err));
+
+        return localSurahObj;
+      }
+
+      // 2. Fallback to AsyncStorage cache
       const cached = await AsyncStorage.getItem(cacheKey);
       if (cached) {
         const parsed = JSON.parse(cached);
@@ -121,19 +163,21 @@ export const useQuranStore = create<QuranState>((set, get) => ({
         
         // Refresh in the background silently
         getSurahDetail(id, translation).then(async (data) => {
-          // Check to ensure we only update if user hasn't switched away
           if (get().selectedTranslation === translation) {
             set({ currentSurah: data });
           }
+          await cacheSurahVerses(id, data.ayahs);
           await AsyncStorage.setItem(cacheKey, JSON.stringify(data));
         }).catch((err) => console.warn(`Background fetch surah ${id} failed:`, err));
 
         return parsed;
       }
 
+      // 3. Fallback to remote API call
       set({ isLoading: true });
       const data = await getSurahDetail(id, translation);
       set({ currentSurah: data });
+      await cacheSurahVerses(id, data.ayahs);
       await AsyncStorage.setItem(cacheKey, JSON.stringify(data));
       return data;
     } catch (err: any) {

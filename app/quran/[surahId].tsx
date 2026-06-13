@@ -13,6 +13,7 @@ import GoldBadge from '../../components/ui/GoldBadge';
 import ArabicText from '../../components/ui/ArabicText';
 import AudioPlayerBar from '../../components/AudioPlayerBar';
 import DuaShareModal, { ShareData } from '../../components/ui/DuaShareModal';
+import ScreenBackground from '../../components/ui/ScreenBackground';
 import {
   isSurahDownloaded,
   downloadFullSurah,
@@ -32,12 +33,14 @@ export default function SurahReaderScreen() {
 
   // Component Refs
   const flatListRef = useRef<FlatList>(null);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // States
   const [surahData, setSurahData] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [readingMode, setReadingMode] = useState<ReadingMode>('Normal');
   const [scrollProgress, setScrollProgress] = useState(0);
+  const [activeVisibleVerse, setActiveVisibleVerse] = useState<number | null>(null);
 
   // Global Audio Synced States
   const [activePlayingVerse, setActivePlayingVerse] = useState<number | null>(null);
@@ -58,6 +61,11 @@ export default function SurahReaderScreen() {
   // Mount logic
   useEffect(() => {
     loadSurahDetails();
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
   }, [surahId, quran.selectedTranslation]);
 
   // Check offline status on data load or change
@@ -183,6 +191,9 @@ export default function SurahReaderScreen() {
             animated: true,
             viewPosition: 0.3,
           });
+          setActiveVisibleVerse(targetIndex + 1);
+        } else {
+          setActiveVisibleVerse(1);
         }
       }, 700);
     } catch (e) {
@@ -204,16 +215,21 @@ export default function SurahReaderScreen() {
     }
   };
 
-  // Tracking current viewable verses to save position every 5 verses
+  // Tracking current viewable verses to save position
   const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
-    if (viewableItems && viewableItems.length > 0) {
+    if (viewableItems && viewableItems.length > 0 && surahData) {
       const topItem = viewableItems[0];
       const verseNumber = topItem.index + 1;
+      
+      setActiveVisibleVerse(verseNumber);
 
-      // Save reading position at intervals of 5 verses
-      if (verseNumber % 5 === 0 && surahData) {
-        quran.setLastRead(surahNum, verseNumber);
+      // Debounce the store/DB write to make scrolling buttery smooth at 60 FPS
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
       }
+      saveTimeoutRef.current = setTimeout(() => {
+        quran.setLastRead(surahNum, verseNumber);
+      }, 1500);
     }
   }).current;
 
@@ -334,6 +350,7 @@ export default function SurahReaderScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom', 'top']}>
+      <ScreenBackground />
       {/* Scroll Progress Indicator Bar at Screen Top */}
       <View style={[styles.progressBar, { width: `${scrollProgress * 100}%` }]} />
 
@@ -455,6 +472,7 @@ export default function SurahReaderScreen() {
               (b) => b.refId === `${surahNum}:${item.numberInSurah}`
             );
             const isPlayingThis = activePlayingVerse === item.numberInSurah;
+            const isActive = activeVisibleVerse === item.numberInSurah;
 
             return (
               <VerseItem
@@ -464,6 +482,7 @@ export default function SurahReaderScreen() {
                 isWordByWord={isWordByWord}
                 isBookmarked={isBookmarked}
                 isPlayingThis={isPlayingThis}
+                isActive={isActive}
                 selectedTranslation={quran.selectedTranslation}
                 onLongPress={handleLongPressVerse}
                 onPlay={handlePlayVerse}
@@ -559,6 +578,7 @@ interface VerseItemProps {
   isWordByWord: boolean;
   isBookmarked: boolean;
   isPlayingThis: boolean;
+  isActive: boolean;
   selectedTranslation: string;
   onLongPress: (item: any) => void;
   onPlay: (item: any) => void;
@@ -574,6 +594,7 @@ const VerseItem = React.memo<VerseItemProps>(({
   isWordByWord,
   isBookmarked,
   isPlayingThis,
+  isActive,
   selectedTranslation,
   onLongPress,
   onPlay,
@@ -585,15 +606,19 @@ const VerseItem = React.memo<VerseItemProps>(({
   const multiplier = themeCtx?.multiplier || 1.0;
   const isDark = themeCtx?.theme === 'dark';
   const playingBg = isDark ? 'rgba(20, 184, 166, 0.04)' : '#EBF7F5';
+  const activeBg = isDark ? 'rgba(201, 168, 76, 0.03)' : '#FAF9F2';
 
   return (
     <TouchableOpacity
       onLongPress={() => onLongPress(item)}
       delayLongPress={300}
       activeOpacity={0.9}
+      style={{ opacity: isActive ? 1.0 : 0.8 }}
     >
       <Card style={[
         styles.verseCard,
+        isActive && styles.verseCardActive,
+        isActive && { backgroundColor: activeBg },
         isPlayingThis && styles.verseCardPlaying,
         isPlayingThis && { backgroundColor: playingBg }
       ]}>
@@ -603,6 +628,12 @@ const VerseItem = React.memo<VerseItemProps>(({
             <Text style={styles.verseNumberText}>{item.numberInSurah}</Text>
           </View>
           <View style={styles.cardActionsRow}>
+            {isActive && (
+              <View style={styles.lastReadBadge}>
+                <Ionicons name="book" size={10} color="#0A0E1A" style={{ marginRight: 3 }} />
+                <Text style={styles.lastReadBadgeText}>Reading</Text>
+              </View>
+            )}
             {isBookmarked && (
               <Ionicons name="bookmark" size={16} color={COLORS.gold} style={styles.actionIcon} />
             )}
@@ -821,6 +852,30 @@ const styles = StyleSheet.create({
   verseCardPlaying: {
     borderColor: COLORS.gold,
     backgroundColor: 'rgba(201, 168, 76, 0.05)',
+  },
+  verseCardActive: {
+    borderColor: COLORS.gold,
+    borderLeftWidth: 4,
+    shadowColor: COLORS.gold,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  lastReadBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.gold,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    marginRight: 6,
+  },
+  lastReadBadgeText: {
+    color: '#0A0E1A',
+    fontSize: 9,
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
   },
   verseHeader: {
     flexDirection: 'row',

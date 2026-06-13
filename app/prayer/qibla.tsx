@@ -20,7 +20,7 @@ import { usePrayerStore } from '../../src/store/prayerStore';
 import { getQiblaBearing } from '../../src/api/client';
 import { COLORS } from '../../constants/theme';
 import { useThemeContext } from '../../src/context/ThemeContext';
-import { LinearGradient } from 'expo-linear-gradient';
+import ScreenBackground from '../../components/ui/ScreenBackground';
 import ArabicGeometricBg from '../../components/ui/ArabicGeometricBg';
 import Card from '../../components/ui/Card';
 
@@ -241,12 +241,7 @@ export default function QiblaCompassScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right', 'top']}>
-      <LinearGradient
-        colors={isDark ? ['#0C101B', '#06080E'] : ['#FFFFFF', '#FAF8F3']}
-        style={StyleSheet.absoluteFillObject}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      />
+      <ScreenBackground />
       {/* Arabic Geometric Overlay Background */}
       <ArabicGeometricBg size={400} style={styles.backgroundOverlay} />
 

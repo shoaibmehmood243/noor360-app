@@ -9,6 +9,7 @@ import { getPrayerTimes } from '../../src/api/client';
 import { COLORS } from '../../constants/theme';
 import { PrimaryButton } from '../../components/ui/PrimaryButton';
 import ArabicGeometricBg from '../../components/ui/ArabicGeometricBg';
+import ScreenBackground from '../../components/ui/ScreenBackground';
 
 export default function LocationScreen() {
   const router = useRouter();
@@ -78,6 +79,7 @@ export default function LocationScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <ScreenBackground />
       <ArabicGeometricBg size={350} style={styles.bgGeometric} />
 
       <View style={styles.content}>

@@ -9,41 +9,41 @@ interface IconProps {
 export const PrayerIcon: React.FC<IconProps> = ({ color, size = 24 }) => {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      {/* Top Face of Kaaba */}
+      {/* Top Roof of Kaaba */}
       <Path
-        d="M12 3L20 7L12 11L4 7L12 3Z"
+        d="M12 4L20 8L12 12L4 8L12 4Z"
         stroke={color}
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      {/* Left and Right Wall Outer Contours */}
+      {/* Left and Right Wall Outline */}
       <Path
-        d="M4 7V17L12 21M20 7V17L12 21"
+        d="M4 8V18L12 22M20 8V18L12 22"
         stroke={color}
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      {/* Central Division line of the Kaaba Corner */}
+      {/* Central Corner Line */}
       <Path
-        d="M12 11V21"
+        d="M12 12V22"
         stroke={color}
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      {/* Golden Kiswa Belt line around the Kaaba */}
+      {/* Kiswa Golden Belt (Horizontal Band) */}
       <Path
-        d="M4 10L12 14M12 14L20 10"
+        d="M4 11L12 15M12 15L20 11"
         stroke={color}
         strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      {/* The golden door of Kaaba (Bab al-Kaaba) on the right-hand wall */}
+      {/* Golden Door (Bab al-Kaaba) on the Right Wall */}
       <Path
-        d="M14 17V14L17 12.5V15.5L14 17Z"
+        d="M14 19V15L18 13V17L14 19Z"
         stroke={color}
         strokeWidth="1.5"
         strokeLinecap="round"

@@ -18,6 +18,7 @@ import { useDuasStore } from '../../src/store/duasStore';
 import { COLORS } from '../../constants/theme';
 import Card from '../../components/ui/Card';
 import ArabicGeometricBg from '../../components/ui/ArabicGeometricBg';
+import ScreenBackground from '../../components/ui/ScreenBackground';
 import { Dua } from '../../src/api/client';
 import DuaShareModal from '../../components/ui/DuaShareModal';
 
@@ -100,7 +101,7 @@ export default function DuaCategoryDetailScreen() {
   };
 
   const getCategoryTitle = () => {
-    if (store.duas.length > 0) {
+    if (store.duas && store.duas.length > 0) {
       const first = store.duas[0];
       const match = store.categories.find(c => c.id === first.category);
       if (match) return match.name;
@@ -110,13 +111,14 @@ export default function DuaCategoryDetailScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right', 'top']}>
+      <ScreenBackground />
       {/* Background patterns */}
       <ArabicGeometricBg size={420} style={styles.backgroundOverlay} />
 
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton} 
+        <TouchableOpacity
+          style={styles.backButton}
           onPress={() => {
             if (router.canGoBack()) {
               router.back();
@@ -129,7 +131,7 @@ export default function DuaCategoryDetailScreen() {
         </TouchableOpacity>
         <View style={styles.headerTitleContainer}>
           <Text style={styles.headerTitle}>{getCategoryTitle()}</Text>
-          <Text style={styles.headerSubtitle}>{store.duas.length} divine supplications</Text>
+          <Text style={styles.headerSubtitle}>{(store.duas || []).length} divine supplications</Text>
         </View>
       </View>
 
@@ -140,7 +142,7 @@ export default function DuaCategoryDetailScreen() {
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-          {store.duas.map((item) => {
+          {(store.duas || []).map((item) => {
             const isBookmarked = store.bookmarkedDuaIds.includes(item.id);
             const isPlaying = playingDuaId === item.id;
 
@@ -310,7 +312,7 @@ const styles = StyleSheet.create({
   duaArabicText: {
     fontSize: 20,
     fontFamily: 'Amiri_400Regular',
-    color: COLORS.gold2,
+    color: COLORS.gold,
     textAlign: 'right',
     lineHeight: 32,
     marginBottom: 14,

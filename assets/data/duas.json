@@ -1,0 +1,602 @@
+[
+  {
+    "id": 1,
+    "category": "morning-adhkar",
+    "title": "Gratitude for Life upon Morning",
+    "arabic": "أَصْبَحْنَا وَأَصْبَحَ الْمُلْكُ لِلَّهِ، وَالْحَمْدُ لِلَّهِ، لاَ إِلَهَ إِلاَّ اللَّهُ وَحْدَهُ لاَ شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ",
+    "transliteration": "Asbahna wa-asbahal-mulku lillah, wal-hamdu lillah, la ilaha illallahu wahdahu la sharika lah, lahul-mulku wa lahul-hamdu, wa Huwa 'ala kulli shay'in Qadeer",
+    "translation": "We have entered a new day and with it all dominion belongs to Allah. Praise is to Allah. None has the right to be worshipped but Allah alone, Who has no partner. To Him belongs all dominion and praise, and He is over all things Omnipotent.",
+    "reference": "Sahih Muslim",
+    "timeOfDay": "morning"
+  },
+  {
+    "id": 2,
+    "category": "morning-adhkar",
+    "title": "Supplication for Protection & Well-being",
+    "arabic": "اللَّهُمَّ عافِني في بَدَني، اللَّهُمَّ عافِني في سَمْعي، اللَّهُمَّ عافِني في بَصَري، لا إِلهَ إِلاّ أَنْتَ",
+    "transliteration": "Allahumma 'afini fi badani, Allahumma 'afini fi sam'i, Allahumma 'afini fi basari, la ilaha illa Ant",
+    "translation": "O Allah, make my body healthy. O Allah, preserve for me my hearing. O Allah, preserve for me my sight. There is no deity worthy of worship except You.",
+    "reference": "Sunan Abi Dawud",
+    "timeOfDay": "morning"
+  },
+  {
+    "id": 3,
+    "category": "morning-adhkar",
+    "title": "Sayyidul Istighfar (Master Forgiveness Supplication)",
+    "arabic": "اللَّهُمَّ أَنْتَ رَبِّي لاَ إِلَهَ إِلاَّ أَنْتَ، خَلَقْتَنِي وَأَنَا عَبْدُكَ، وَأَنَا عَلَى عَهْدِكَ وَوَعْدِكَ مَا اسْتَطَعْتُ، أَعُوذُ بِكَ مِنْ شَرِّ مَا صَنَعْتُ، أَبُوءُ لَكَ بِنِعْمَتِكَ عَلَيَّ، وَأَبُوءُ بِذَنْبِي فَاغْفِرْ لِي فَإِنَّهُ لاَ يَغْفِرُ الذُّنُوبَ إِلاَّ أَنْتَ",
+    "transliteration": "Allahumma Anta Rabbi la ilaha illa Ant, khalaqtani wa ana 'abduka, wa ana 'ala 'ahdika wa wa'dika mas-tata't, a'udhu bika min sharri ma sana't, abu'u laka bini'matika 'alayya, wa abu'u bidhanbi faghfir li fa'innahu la yaghfirudh-dhunuba illa Ant",
+    "translation": "O Allah, You are my Lord, there is no deity worthy of worship except You. You created me and I am Your servant, and I remain faithful to my covenant and promise to You as much as I can. I seek refuge in You from the evil of what I have done. I acknowledge Your favor upon me, and I acknowledge my sin, so forgive me, for indeed none forgives sins except You.",
+    "reference": "Sahih Al-Bukhari",
+    "timeOfDay": "morning"
+  },
+  {
+    "id": 4,
+    "category": "morning-adhkar",
+    "title": "Supplication for Beneficial Knowledge & Provision",
+    "arabic": "اللَّهُمَّ إِنِّي أَسْأَلُكَ عِلْمًا نَافِعًا، وَرِزْقًا طَيِّبًا، وَعَمَلاً مُتَقَبَّلاً",
+    "transliteration": "Allahumma inni as'aluka 'ilman nafi'an, wa rizqan tayyiban, wa 'amalan mutaqabbalan",
+    "translation": "O Allah, indeed I ask You for beneficial knowledge, wholesome provision, and deeds that are accepted.",
+    "reference": "Sunan Ibn Majah",
+    "timeOfDay": "morning"
+  },
+  {
+    "id": 5,
+    "category": "morning-adhkar",
+    "title": "Morning Devotion to the Creator",
+    "arabic": "اللَّهُمَّ بِكَ أَصْبَحْنَا، وَبِكَ أَمْسَيْنَا، وَبِكَ نَحْيَا، وَبِكَ نَمُوتُ، وَإِلَيْكَ النُّشُورُ",
+    "transliteration": "Allahumma bika asbahna, wa bika amsayna, wa bika nahya, wa bika namut, wa ilaykan-nushur",
+    "translation": "O Allah, by You we enter the morning, and by You we enter the evening, by You we live, and by You we die, and to You is the final resurrection.",
+    "reference": "Sunan Abi Dawud",
+    "timeOfDay": "morning"
+  },
+  {
+    "id": 6,
+    "category": "morning-adhkar",
+    "title": "Supplication for Absolute Contentment",
+    "arabic": "رَضِيتُ بِاللَّهِ رَبَّا، وَبِالْإِسْلَامِ دِينًا، وَبِمُحَمَّدٍ صَلَّى اللَّهُ عَلَيْهِ وَسَلَّمَ نَبِيَّا",
+    "transliteration": "Radeetu billahi Rabban, wa bil-Islami deenan, wa bi-Muhammadin sallallahu 'alayhi wa sallama Nabiyya",
+    "translation": "I am pleased with Allah as my Lord, with Islam as my religion, and with Muhammad (peace and blessings of Allah be upon him) as my Prophet.",
+    "reference": "Sunan At-Tirmidhi",
+    "timeOfDay": "morning"
+  },
+  {
+    "id": 7,
+    "category": "evening-adhkar",
+    "title": "Evening Supplication of Dominion",
+    "arabic": "أَمْسَيْنَا وَأَمْسَى الْمُلْكُ لِلَّهِ، وَالْحَمْدُ لِلَّهِ، لاَ إِلَهَ إِلاَّ اللَّهُ وَحْدَهُ لاَ شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ",
+    "transliteration": "Amsayna wa-amsal-mulku lillah, wal-hamdu lillah, la ilaha illallahu wahdahu la sharika lah, lahul-mulku wa lahul-hamdu, wa Huwa 'ala kulli shay'in Qadeer",
+    "translation": "We have entered the evening and with it all dominion belongs to Allah. Praise is to Allah. None has the right to be worshipped but Allah alone, Who has no partner. To Him belongs all dominion and praise, and He is over all things Omnipotent.",
+    "reference": "Sahih Muslim",
+    "timeOfDay": "evening"
+  },
+  {
+    "id": 8,
+    "category": "evening-adhkar",
+    "title": "Seeking Perfect Protection of the Night",
+    "arabic": "أَعُوذُ بِكَلِمَاتِ اللَّهِ التَّامَّاتِ مِنْ شَرِّ مَا خَلَقَ",
+    "transliteration": "A'udhu bikalimatil-lahit-tammati min sharri ma khalaq",
+    "translation": "I seek refuge in the perfect words of Allah from the evil of what He has created.",
+    "reference": "Sahih Muslim",
+    "timeOfDay": "evening"
+  },
+  {
+    "id": 9,
+    "category": "evening-adhkar",
+    "title": "Evening Devotion to the Lord",
+    "arabic": "اللَّهُمَّ بِكَ أَمْسَيْنَا، وَبِكَ أَصْبَحْنَا، وَبِكَ نَحْيَا، وَبِكَ نَمُوتُ، وَإِلَيْكَ الْمَصِيرُ",
+    "transliteration": "Allahumma bika amsayna, wa bika asbahna, wa bika nahya, wa bika namut, wa ilaykal-maseer",
+    "translation": "O Allah, by You we enter the evening, and by You we enter the morning, by You we live, and by You we die, and to You is the final return.",
+    "reference": "Sunan Abi Dawud",
+    "timeOfDay": "evening"
+  },
+  {
+    "id": 10,
+    "category": "evening-adhkar",
+    "title": "Dua for Protection from Disbelief and Poverty",
+    "arabic": "اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنَ الْكُفْرِ وَالْفَقْرِ، وَأَعُوذُ بِكَ مِنْ عَذَابِ الْقَبْرِ، لاَ إِلَهَ إِلاَّ أَنْتَ",
+    "transliteration": "Allahumma inni a'udhu bika minal-kufri wal-faqri, wa a'udhu bika min 'adhabil-qabri, la ilaha illa Ant",
+    "translation": "O Allah, I seek refuge in You from disbelief and poverty, and I seek refuge in You from the punishment of the grave. There is no deity worthy of worship except You.",
+    "reference": "Sunan Abi Dawud",
+    "timeOfDay": "evening"
+  },
+  {
+    "id": 11,
+    "category": "evening-adhkar",
+    "title": "Plea for Protection from Sudden Calamity",
+    "arabic": "بِسْمِ اللَّهِ الَّذِي لاَ يَضُرُّ مَعَ اسْمِهِ شَيْءٌ فِي الأَرْضِ وَلاَ فِي السَّمَاءِ وَهُوَ السَّمِيعُ الْعَلِيمُ",
+    "transliteration": "Bismillahil-ladhi la yadurru ma'as-mihi shai'un fil-ardi wa la fis-sama'i wa Huwas-Sami'ul-'Alim",
+    "translation": "In the Name of Allah, Who with His Name nothing can cause harm in the earth nor in the heaven, and He is the All-Hearing, the All-Knowing.",
+    "reference": "Sunan At-Tirmidhi",
+    "timeOfDay": "evening"
+  },
+  {
+    "id": 12,
+    "category": "evening-adhkar",
+    "title": "Praise Equal to All Creation",
+    "arabic": "سُبْحَانَ اللَّهِ وَبِحَمْدِهِ: عَدَدَ خَلْقِهِ، وَرِضَا نَفْسِهِ، وَزِنَةَ عَرْشِهِ، وَمِدَادَ كَلِمَاتِهِ",
+    "transliteration": "Subhanallahi wa bihamdih: 'Adada khalqihi, wa rida nafsihi, wa zinata 'arshihi, wa midada kalimatih",
+    "translation": "Glory be to Allah and praise is due to Him, according to the number of His creation, according to His pleasure, according to the weight of His Throne, and according to the ink of His words.",
+    "reference": "Sahih Muslim",
+    "timeOfDay": "evening"
+  },
+  {
+    "id": 13,
+    "category": "food-eating",
+    "title": "Dua Before Commencing Food",
+    "arabic": "بِسْمِ اللَّهِ",
+    "transliteration": "Bismillah",
+    "translation": "In the Name of Allah.",
+    "reference": "Sunan Abi Dawud",
+    "timeOfDay": "anytime"
+  },
+  {
+    "id": 14,
+    "category": "food-eating",
+    "title": "Forgetting to Say Bismillah at the Start",
+    "arabic": "بِسْمِ اللَّهِ فِي أَوَّلِهِ وَآخِرِهِ",
+    "transliteration": "Bismillahi fi awwalihi wa akhirih",
+    "translation": "In the Name of Allah at the beginning and the end.",
+    "reference": "Sunan At-Tirmidhi",
+    "timeOfDay": "anytime"
+  },
+  {
+    "id": 15,
+    "category": "food-eating",
+    "title": "Gratitude After Finishing Food",
+    "arabic": "الْحَمْدُ لِلَّهِ الَّذِي أَطْعَمَنِي هَذَا، وَرَزَقَنِيهِ مِنْ غَيْرِ حَوْلٍ مِنِّي وَلاَ قُوَّةٍ",
+    "transliteration": "Alhamdu lillahil-ladhi at'amani hadha, wa razaqanihi min ghayri hawlin minni wa la quwwah",
+    "translation": "Praise be to Allah Who has fed me this and provided me with it without any might or power on my part.",
+    "reference": "Sunan At-Tirmidhi",
+    "timeOfDay": "anytime"
+  },
+  {
+    "id": 16,
+    "category": "food-eating",
+    "title": "Dua When Drinking Milk",
+    "arabic": "اللَّهُمَّ بَارِكْ لَنَا فِيهِ وَزِدْنَا مِنْهُ",
+    "transliteration": "Allahumma barik lana feehi wa zidna minhu",
+    "translation": "O Allah, bless us in it and give us more of it.",
+    "reference": "Sunan Abi Dawud",
+    "timeOfDay": "anytime"
+  },
+  {
+    "id": 17,
+    "category": "food-eating",
+    "title": "Dua for One Who Feeds You",
+    "arabic": "اللَّهُمَّ أَطْعِمْ مَنْ أَطْعَمَنِي وَاسْقِ مَنْ سَقَانِي",
+    "transliteration": "Allahumma at'im man at'amani wasqi man saqani",
+    "translation": "O Allah, feed the one who fed me, and give drink to the one who gave me drink.",
+    "reference": "Sahih Muslim",
+    "timeOfDay": "anytime"
+  },
+  {
+    "id": 18,
+    "category": "food-eating",
+    "title": "Supplication Upon Breaking the Fast",
+    "arabic": "ذَهَبَ الظَّمَأُ وَابْتَلَّتِ الْعُرُوقُ وَثَبَتَ الأَجْرُ إِنْ شَاءَ اللَّهُ",
+    "transliteration": "Dhahabadh-dhama'u wabtallatil-'uruqu, wa thabatal-ajru in sha' Allah",
+    "translation": "The thirst has gone, the veins are moistened, and the reward is confirmed, if Allah wills.",
+    "reference": "Sunan Abi Dawud",
+    "timeOfDay": "evening"
+  },
+  {
+    "id": 19,
+    "category": "before-sleep",
+    "title": "Dua Before Sleeping (Basic)",
+    "arabic": "بِاسْمِكَ اللَّهُمَّ أَمُوتُ وَأَحْيَا",
+    "transliteration": "Bismika Allahumma amutu wa ahya",
+    "translation": "In Your Name, O Allah, I die and I live.",
+    "reference": "Sahih Al-Bukhari",
+    "timeOfDay": "evening"
+  },
+  {
+    "id": 20,
+    "category": "before-sleep",
+    "title": "Seeking Complete Protection from Punishment",
+    "arabic": "اللَّهُمَّ قِنِي عَذَابَكَ يَوْمَ تَبْعَثُ عِبَادَكَ",
+    "transliteration": "Allahumma qinee 'adhabaka yawma tab'athu 'ibadaka",
+    "translation": "O Allah, save me from Your punishment on the Day You resurrect Your servants.",
+    "reference": "Sunan Abi Dawud",
+    "timeOfDay": "evening"
+  },
+  {
+    "id": 21,
+    "category": "before-sleep",
+    "title": "Surrendering Soul to Allah Before Rest",
+    "arabic": "اللَّهُمَّ أَسْلَمْتُ نَفْسِي إِلَيْكَ، وَفَوَّضْتُ أَمْرِي إِلَيْكَ، وَأَلْجَأْتُ ظَهْرِي إِلَيْكَ، رَغْبَةً وَرَهْبَةً إِلَيْكَ، لاَ مَلْجَأَ وَلاَ مَنْجَا مِنْكَ إِلاَّ إِلَيْكَ",
+    "transliteration": "Allahumma aslamtu nafsee ilayk, wa fawwadtu amree ilayk, wa alja'tu dahree ilayk, raghbatan wa rahbatan ilayk, la malja'a wa la manja minka illa ilayk",
+    "translation": "O Allah, I submit my soul to You, delegate my affair to You, and turn my back to You in hope and fear of You. There is no refuge and no escape from You except to You.",
+    "reference": "Sahih Al-Bukhari",
+    "timeOfDay": "evening"
+  },
+  {
+    "id": 22,
+    "category": "before-sleep",
+    "title": "Reciting Ayat al-Kursi for All-Night Guardian",
+    "arabic": "اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ ۚ لَا تَأْخُذُهُ سِنَةٌ وَلَا نَوْمٌ",
+    "transliteration": "Allahu la ilaha illa Huwal-Hayyul-Qayyum, la ta'khudhuhu sinatun wa la nawm...",
+    "translation": "Allah! There is no deity worthy of worship except Him, the Ever-Living, the Sustainer of all existence. Neither drowsiness overtakes Him nor sleep...",
+    "reference": "Sahih Al-Bukhari (Surah Al-Baqarah 2:255)",
+    "timeOfDay": "evening"
+  },
+  {
+    "id": 23,
+    "category": "before-sleep",
+    "title": "Supplication in Your Name I Lay My Side",
+    "arabic": "بِاسْمِكَ رَبِّي وَضَعْتُ جَنْبِي وَبِكَ أَرْفَعُهُ، إِنْ أَمْسَكْتَ نَفْسِي فَارْحَمْهَا، وَإِنْ أَرْسَلْتَهَا فَاحْفَظْهَا بِمَا تَحْفَظُ بِهِ عِبَادَكَ الصَّالِحِينَ",
+    "transliteration": "Bismika Rabbi wada'tu janbi wa bika arfa'uh, in amsakta nafsee farhamha, wa in arsaltaha fahfadha bima tahfadhu bihi 'ibadakas-saliheen",
+    "translation": "In Your Name my Lord, I lay down my side and by You I raise it. If You take my soul, have mercy on it, and if You send it back, preserve it as You preserve Your righteous servants.",
+    "reference": "Sahih Al-Bukhari",
+    "timeOfDay": "evening"
+  },
+  {
+    "id": 24,
+    "category": "before-sleep",
+    "title": "Dua for Sleep Comfort",
+    "arabic": "الْحَمْدُ لِلَّهِ الَّذِي أَطْعَمَنَا وَسَقَانَا، وَكَفَانَا وَآوَانَا، فَكَمْ مِمَّنْ لاَ كَافِيَ لَهُ وَلاَ مُؤْوِيَ",
+    "transliteration": "Alhamdu lillahil-ladhi at'amana wa saqana, wa kafana wa awana, fakam mimman la kafiya lahu wa la mu'wi",
+    "translation": "Praise is to Allah Who has fed us, given us drink, sufficed us and given us shelter, for how many are there who have none to suffice them or shelter them.",
+    "reference": "Sahih Muslim",
+    "timeOfDay": "evening"
+  },
+  {
+    "id": 25,
+    "category": "upon-waking",
+    "title": "Dua Upon Waking Up (Basic)",
+    "arabic": "الْحَمْدُ لِلَّهِ الَّذِي أَحْيَانَا بَعْدَ مَا أَمَاتَنَا وَإِلَيْهِ النُّشُورُ",
+    "transliteration": "Alhamdu lillahil-ladhi ahyana ba'da ma amatana wa ilayhin-nushur",
+    "translation": "Praise is to Allah Who gave us life after He had caused us to die, and to Him is the final resurrection.",
+    "reference": "Sahih Al-Bukhari",
+    "timeOfDay": "morning"
+  },
+  {
+    "id": 26,
+    "category": "upon-waking",
+    "title": "Praise for Returned Spirit and Well-being",
+    "arabic": "الْحَمْدُ لِلَّهِ الَّذِي عَافَانِي فِي جَسَدِي، وَرَدَّ عَلَيَّ رُوحِي، وَأَذِنَ لِي بِذِكْرِهِ",
+    "transliteration": "Alhamdu lillahil-ladhi 'afanee fee jasadee, wa radda 'alayya roohee, wa adhina lee bidhikrih",
+    "translation": "Praise is to Allah Who has given health to my physical body, returned my spirit to me, and permitted me to remember Him.",
+    "reference": "Sunan At-Tirmidhi",
+    "timeOfDay": "morning"
+  },
+  {
+    "id": 27,
+    "category": "upon-waking",
+    "title": "Affirming Belief in Unity of Creator",
+    "arabic": "لاَ إِلَهَ إِلاَّ اللَّهُ وَحْدَهُ لاَ شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ، سُبْحَانَ اللَّهِ، وَالْحَمْدُ لِلَّهِ",
+    "transliteration": "La ilaha illallahu wahdahu la sharika lah, lahul-mulku wa lahul-hamdu wa Huwa 'ala kulli shay'in Qadeer. Subhanallahi walhamdu lillah",
+    "translation": "None has the right to be worshipped but Allah alone, Who has no partner. To Him belongs all dominion and praise. Glory be to Allah, praise be to Allah.",
+    "reference": "Sahih Al-Bukhari",
+    "timeOfDay": "morning"
+  },
+  {
+    "id": 28,
+    "category": "upon-waking",
+    "title": "Waking Call for Forgiveness",
+    "arabic": "رَبِّ اغْفِرْ لِي",
+    "transliteration": "Rabbigh-fir lee",
+    "translation": "My Lord, forgive me.",
+    "reference": "Sunan At-Tirmidhi",
+    "timeOfDay": "morning"
+  },
+  {
+    "id": 29,
+    "category": "upon-waking",
+    "title": "Supplication for Light in Life",
+    "arabic": "اللَّهُمَّ اجْعَلْ فِي قَلْبِي نُورًا، وَفِي بَصَرِي نُورًا، وَفِي سَمْعِي نُورًا، وَعَنْ يَمِينِي نُورًا",
+    "transliteration": "Allahummaj-'al fee qalbee nooran, wa fee basaree nooran, wa fee sam'ee nooran, wa 'an yameenee nooran",
+    "translation": "O Allah, place light in my heart, light in my sight, light in my hearing, and light on my right side.",
+    "reference": "Sahih Al-Bukhari",
+    "timeOfDay": "morning"
+  },
+  {
+    "id": 30,
+    "category": "upon-waking",
+    "title": "Seeking Guidance Upon Morning",
+    "arabic": "اللَّهُمَّ اهْدِنِي فِيمَنْ هَدَيْتَ، وَعَافِنِي فِيمَنْ عَافَيْتَ",
+    "transliteration": "Allahummah-dinee feeman hadayt, wa 'afinee feeman 'afayt",
+    "translation": "O Allah, guide me among those whom You have guided, and pardon me among those whom You have pardoned.",
+    "reference": "Sunan Abi Dawud",
+    "timeOfDay": "morning"
+  },
+  {
+    "id": 31,
+    "category": "travel",
+    "title": "Dua for Mounting a Vehicle",
+    "arabic": "بِسْمِ اللَّهِ، الْحَمْدُ لِلَّهِ، سُبْحَانَ الَّذِي سَخَّرَ لَنَا هَذَا وَمَا كُنَّا لَهُ مُقْرِنِينَ، وَإِنَّا إِلَى رَبِّنَا لَمُنْقَلِبُونَ",
+    "transliteration": "Bismillahi, Alhamdu lillahi, Subhanal-ladhi sakh-khara lana hadha wa ma kunna lahu muqrineen, wa inna ila Rabbina lamunqaliboon",
+    "translation": "In the Name of Allah. Praise is to Allah. Glory is to Him Who has subjected this to us, and we were not able to do it ourselves. And surely, to our Lord we are returning.",
+    "reference": "Sunan Abi Dawud",
+    "timeOfDay": "anytime"
+  },
+  {
+    "id": 32,
+    "category": "travel",
+    "title": "Supplication for Journey Security",
+    "arabic": "اللَّهُمَّ إِنَّا نَسْأَلُكَ فِي سَفَرِنَا هَذَا الْبِرَّ وَالتَّقْوَى، وَمِنَ الْعَمَلِ مَا تَرْضَى",
+    "transliteration": "Allahumma inna nas'aluka fee safarina hadhal-birra wat-taqwa, wa minal-'amali ma tarda",
+    "translation": "O Allah, we ask You on this journey of ours for righteousness and piety, and for deeds that please You.",
+    "reference": "Sahih Muslim",
+    "timeOfDay": "anytime"
+  },
+  {
+    "id": 33,
+    "category": "travel",
+    "title": "Seeking Protection from Travel Hardships",
+    "arabic": "اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنْ وَعْثَاءِ السَّفَرِ، وَكَآبَةِ الْمَنْظَرِ، وَسُوءِ الْمُنْقَلَبِ فِي الْمَالِ وَالأَهْلِ",
+    "transliteration": "Allahumma inni a'udhu bika min wa'tha'is-safari, wa ka'abatil-mandhari, wa soo'il-munqalabi fil-mali wal-ahl",
+    "translation": "O Allah, I seek refuge in You from the hardships of travel, from a dismal sight, and from an evil return to my wealth and family.",
+    "reference": "Sahih Muslim",
+    "timeOfDay": "anytime"
+  },
+  {
+    "id": 34,
+    "category": "travel",
+    "title": "Dua of the Traveler for the Residents",
+    "arabic": "أَسْتَوْدِعُكُمُ اللَّهَ الَّذِي لاَ تَضِيعُ وَدَائِعُهُ",
+    "transliteration": "Astawdi'ukumul-lahal-ladhi la tadee'u wada'i'uh",
+    "translation": "I leave you in the trust of Allah, Whose trusts are never lost.",
+    "reference": "Sunan Ibn Majah",
+    "timeOfDay": "anytime"
+  },
+  {
+    "id": 35,
+    "category": "travel",
+    "title": "Resident's Dua for the Traveler",
+    "arabic": "أَسْتَوْدِعُ اللَّهَ دِينَكَ، وَأَمَانَتَكَ، وَخَوَاتِيمَ عَمَلِكَ",
+    "transliteration": "Astawdi'ullaha deenaka, wa amanataka, wa khawateema 'amalik",
+    "translation": "I entrust to Allah your religion, your safekeeping, and your final deeds.",
+    "reference": "Sunan Abi Dawud",
+    "timeOfDay": "anytime"
+  },
+  {
+    "id": 36,
+    "category": "travel",
+    "title": "Dua When Returning from Journey",
+    "arabic": "آيِبُونَ تَائِبُونَ عَابِدُونَ لِرَبِّنَا حَامِدُونَ",
+    "transliteration": "Ayiboona ta'iboona 'abidoona liRabbina hamidoon",
+    "translation": "We return, repenting, worshipping, and praising our Lord.",
+    "reference": "Sahih Muslim",
+    "timeOfDay": "anytime"
+  },
+  {
+    "id": 37,
+    "category": "protection",
+    "title": "Dua for General Protection & Shelter",
+    "arabic": "بِسْمِ اللَّهِ الَّذِي لاَ يَضُرُّ مَعَ اسْمِهِ شَيْءٌ فِي الأَرْضِ وَلاَ فِي السَّمَاءِ وَهُوَ السَّمِيعُ الْعَلِيمُ",
+    "transliteration": "Bismillahil-ladhi la yadurru ma'as-mihi shai'un fil-ardi wa la fis-sama'i wa Huwas-Sami'ul-'Alim",
+    "translation": "In the Name of Allah, Who with His Name nothing can cause harm in the earth nor in the heaven, and He is the All-Hearing, the All-Knowing.",
+    "reference": "Sunan At-Tirmidhi",
+    "timeOfDay": "anytime"
+  },
+  {
+    "id": 38,
+    "category": "protection",
+    "title": "Seeking Shield in Perfect Words of Allah",
+    "arabic": "أَعُوذُ بِكَلِمَاتِ اللَّهِ التَّامَّاتِ مِنْ غَضَبِهِ وَعِقَابِهِ وَشَرِّ عِبَادِهِ",
+    "transliteration": "A'udhu bikalimatil-lahit-tammati min ghadabihi wa 'iqabihi, wa sharri 'ibadihi",
+    "translation": "I seek refuge in the perfect words of Allah from His anger and punishment, and from the evil of His servants.",
+    "reference": "Sunan At-Tirmidhi",
+    "timeOfDay": "anytime"
+  },
+  {
+    "id": 39,
+    "category": "protection",
+    "title": "Seeking Protection from Evil Eye",
+    "arabic": "أَعُوذُ بِكَلِمَاتِ اللَّهِ التَّامَّةِ مِنْ كُلِّ شَيْطَانٍ وَهَامَّةٍ وَمِنْ كُلِّ عَيْنٍ لَامَّةٍ",
+    "transliteration": "A'udhu bikalimatil-lahit-tammati min kulli shaytanin wa hammatin, wa min kulli 'aynin lammah",
+    "translation": "I seek refuge in the perfect words of Allah from every devil and poisonous beast, and from every envious eye.",
+    "reference": "Sahih Al-Bukhari",
+    "timeOfDay": "anytime"
+  },
+  {
+    "id": 40,
+    "category": "protection",
+    "title": "Shield Against the Temptations of Devils",
+    "arabic": "رَبِّ أَعُوذُ بِكَ مِنْ هَمَزَاتِ الشَّيَاطِينِ وَأَعُوذُ بِكَ رَبِّ أَنْ يَحْضُرُونِ",
+    "transliteration": "Rabbi a'udhu bika min hamazatish-shayateen wa a'udhu bika Rabbi ay-yahduroon",
+    "translation": "My Lord, I seek refuge in You from the incitements of the devils, and I seek refuge in You, my Lord, lest they be present with me.",
+    "reference": "Surah Al-Mu'minun 23:97-98",
+    "timeOfDay": "anytime"
+  },
+  {
+    "id": 41,
+    "category": "protection",
+    "title": "Supplication for Safeguarding Children",
+    "arabic": "أُعِيذُكُمَا بِكَلِمَاتِ اللَّهِ التَّامَّةِ مِنْ كُلِّ شَيْطَانٍ وَهَامَّةٍ",
+    "transliteration": "U'eedhukuma bikalimatil-lahit-tammati min kulli shaytanin wa hammah",
+    "translation": "I commend you both to the protection of Allah's perfect words from every devil and every harmful beast.",
+    "reference": "Sahih Al-Bukhari",
+    "timeOfDay": "anytime"
+  },
+  {
+    "id": 42,
+    "category": "protection",
+    "title": "Seeking Mercy from Illness",
+    "arabic": "اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنَ الْبَرَصِ وَالْجُنُونِ وَالْجُذَامِ وَمِنْ سَيِّئِ الأَسْقَامِ",
+    "transliteration": "Allahumma inni a'udhu bika minal-barasi wal-jununi wal-judhami wa min sayyi'il-asqam",
+    "translation": "O Allah, I seek refuge in You from vitiligo, madness, leprosy, and from all evil diseases.",
+    "reference": "Sunan Abi Dawud",
+    "timeOfDay": "anytime"
+  },
+  {
+    "id": 43,
+    "category": "entering-home",
+    "title": "Dua When Entering the Home",
+    "arabic": "بِسْمِ اللَّهِ وَلَجْنَا، وَبِسْمِ اللَّهِ خَرَجْنَا، وَعَلَى اللَّهِ رَبِّنَا تَوَكَّلْنَا",
+    "transliteration": "Bismillahi walajna, wa bismillahi kharajna, wa 'ala Allahi Rabbina tawakkalna",
+    "translation": "In the Name of Allah we enter, and in the Name of Allah we leave, and upon Allah our Lord we depend.",
+    "reference": "Sunan Abi Dawud",
+    "timeOfDay": "anytime"
+  },
+  {
+    "id": 44,
+    "category": "entering-home",
+    "title": "Greeting the Family Upon Entry",
+    "arabic": "السَّلاَمُ عَلَيْكُمْ وَرَحْمَةُ اللَّهِ وَبَرَكَاتُهُ",
+    "transliteration": "Assalamu 'alaykum wa rahmatullahi wa barakatuh",
+    "translation": "Peace be upon you, and the mercy of Allah and His blessings.",
+    "reference": "Sahih Muslim",
+    "timeOfDay": "anytime"
+  },
+  {
+    "id": 45,
+    "category": "entering-home",
+    "title": "Dua When Leaving the Home",
+    "arabic": "بِسْمِ اللَّهِ، تَوَكَّلْتُ عَلَى اللَّهِ، لاَ حَوْلَ وَلاَ قُوَّةَ إِلاَّ بِاللَّهِ",
+    "transliteration": "Bismillahi, tawakkaltu 'alallahi, la hawla wa la quwwata illa billah",
+    "translation": "In the Name of Allah, I trust in Allah; there is no power and no might except with Allah.",
+    "reference": "Sunan Abi Dawud",
+    "timeOfDay": "anytime"
+  },
+  {
+    "id": 46,
+    "category": "entering-home",
+    "title": "Dua for Protection of Home Environment",
+    "arabic": "اللَّهُمَّ إِنِّي أَسْأَلُكَ خَيْرَ الْمَوْلَجِ وَخَيْرَ الْمَخْرَجِ",
+    "transliteration": "Allahumma inni as'aluka khayral-mawlaji wa khayral-makhraji",
+    "translation": "O Allah, I ask You for the best entrance and the best exit.",
+    "reference": "Sunan Abi Dawud",
+    "timeOfDay": "anytime"
+  },
+  {
+    "id": 47,
+    "category": "entering-home",
+    "title": "Remembrance in Empty Space",
+    "arabic": "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ",
+    "transliteration": "Bismillahir-Rahmanir-Raheem",
+    "translation": "In the Name of Allah, the Most Gracious, the Most Merciful.",
+    "reference": "Sahih Muslim",
+    "timeOfDay": "anytime"
+  },
+  {
+    "id": 48,
+    "category": "entering-home",
+    "title": "Dua for Peace in the Household",
+    "arabic": "اللَّهُمَّ اجْعَلْ بَيْتَنَا مَعْمُورًا بِذِكْرِكَ",
+    "transliteration": "Allahummaj-'al baytana ma'mooran bidhikrika",
+    "translation": "O Allah, make our home populated with Your remembrance.",
+    "reference": "Al-Adab Al-Mufrad",
+    "timeOfDay": "anytime"
+  },
+  {
+    "id": 49,
+    "category": "stress-anxiety",
+    "title": "Dua for Grief and Anxiety Relief",
+    "arabic": "اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنَ الْهَمِّ وَالْحَزَنِ، وَالْعَجْزِ وَالْكَسَلِ، وَالْبُخْلِ وَالْجُبْنِ، وَضَلَعِ الدَّيْنِ وَغَلَبَةِ الرِّجَالِ",
+    "transliteration": "Allahumma inni a'udhu bika minal-hammi wal-hazani, wal-'ajzi wal-kasali, wal-bukhli wal-jubni, wa dala'id-dayni wa ghalabatir-rijal",
+    "translation": "O Allah, I seek refuge in You from anxiety and sorrow, weakness and laziness, miserliness and cowardice, the burden of debts and from being overpowered by men.",
+    "reference": "Sahih Al-Bukhari",
+    "timeOfDay": "anytime"
+  },
+  {
+    "id": 50,
+    "category": "stress-anxiety",
+    "title": "Supplication in Extreme Distress",
+    "arabic": "لاَ إِلَهَ إِلاَّ اللَّهُ الْعَظِيمُ الْحَلِيمُ، لاَ إِلَهَ إِلاَّ اللَّهُ رَبُّ الْعَرْشِ الْعَظِيمِ، لاَ إِلَهَ إِلاَّ اللَّهُ رَبُّ السَّمَوَاتِ وَرَبُّ الأَرْضِ وَرَبُّ الْعَرْشِ الْكَرِيمِ",
+    "transliteration": "La ilaha illallahul-'Adheemul-Haleem, la ilaha illallahu Rabbul-'Arshil-'adheem, la ilaha illallahu Rabbus-samawati wa Rabbul-ardi wa Rabbul-'Arshil-kareem",
+    "translation": "There is no deity worthy of worship except Allah, the Majestic, the Most Forbearing. There is no deity worthy of worship except Allah, Lord of the Tremendous Throne. There is no deity worthy of worship except Allah, Lord of the heavens and Lord of the earth and Lord of the Noble Throne.",
+    "reference": "Sahih Al-Bukhari",
+    "timeOfDay": "anytime"
+  },
+  {
+    "id": 51,
+    "category": "stress-anxiety",
+    "title": "Dua of Prophet Yunus (The Belly of the Whale)",
+    "arabic": "لَّا إِلَٰهَ إِلَّا أَنتَ سُبْحَانَكَ إِنِّي كُنتُ مِنَ الظَّالِمِينَ",
+    "transliteration": "La ilaha illa Anta subhanaka innee kuntu minadh-dhalimeen",
+    "translation": "None has the right to be worshipped but You, glory be to You, truly I have been one of the wrongdoers.",
+    "reference": "Surah Al-Anbiya 21:87",
+    "timeOfDay": "anytime"
+  },
+  {
+    "id": 52,
+    "category": "stress-anxiety",
+    "title": "Seeking Peace Through Divine Decree",
+    "arabic": "اللَّهُمَّ رَحْمَتَكَ أَرْجُو فَلا تَكِلْنِي إِلَى نَفْسِي طَرْفَةَ عَيْنٍ، وَأَصْلِحْ لِي شَأْنِي كُلَّهُ، لا إِلَهَ إِلا أَنْتَ",
+    "transliteration": "Allahumma rahmataka arju fala takilnee ila nafsee tarfata 'aynin, wa aslih lee sha'nee kullahu, la ilaha illa Ant",
+    "translation": "O Allah, for Your mercy I hope, so do not leave me to myself even for the blink of an eye; and rectify all my affairs, there is no deity worthy of worship except You.",
+    "reference": "Sunan Abi Dawud",
+    "timeOfDay": "anytime"
+  },
+  {
+    "id": 53,
+    "category": "stress-anxiety",
+    "title": "Dua for Strength and Clarity",
+    "arabic": "حَسْبُنَا اللَّهُ وَنِعْمَ الْوَكِيلُ",
+    "transliteration": "Hasbunallahu wa ni'mal-wakeel",
+    "translation": "Allah is sufficient for us, and He is the best Disposer of affairs.",
+    "reference": "Surah Ali 'Imran 3:173",
+    "timeOfDay": "anytime"
+  },
+  {
+    "id": 54,
+    "category": "stress-anxiety",
+    "title": "Dua When Facing Hardships",
+    "arabic": "اللَّهُمَّ لاَ سَهْلَ إِلاَّ مَا جَعَلْتَهُ سَهْلاً، وَأَنْتَ تَجْعَلُ الْحَزْنَ إِذَا شِئْتَ سَهْلاً",
+    "transliteration": "Allahumma la sahla illa ma ja'altahu sahlan, wa Anta taj'alul-hazna idha shi'ta sahlan",
+    "translation": "O Allah, there is no ease except in that which You have made easy, and You make the difficulty easy, if You will.",
+    "reference": "Sahih Ibn Hibban",
+    "timeOfDay": "anytime"
+  },
+  {
+    "id": 55,
+    "category": "gratitude",
+    "title": "Quranic Prayer of Supreme Gratitude",
+    "arabic": "رَبِّ أَوْزِعْنِي أَنْ أَشْكُرَ نِعْمَتَكَ الَّتِي أَنْعَمْتَ عَلَيَّ وَعَلَىٰ وَالِدَيَّ وَأَنْ أَعْمَلَ صَالِحًا تَرْضَاهُ",
+    "transliteration": "Rabbi awzi'nee an ashkura ni'matakal-latee an'amta 'alayya wa 'ala walidayya wa an a'mala salihan tardahu",
+    "translation": "My Lord, enable me to be grateful for Your favor which You have bestowed upon me and upon my parents and to do righteousness of which You approve.",
+    "reference": "Surah Al-Ahqaf 46:15",
+    "timeOfDay": "anytime"
+  },
+  {
+    "id": 56,
+    "category": "gratitude",
+    "title": "Gratitude for General Blessing",
+    "arabic": "الْحَمْدُ لِلَّهِ كَثِيرًا طَيِّبًا مُبَارَكًا فِيهِ",
+    "transliteration": "Alhamdu lillahi katheeran tayyiban mubarakan feehi",
+    "translation": "Praise be to Allah, abundant, pure, blessed praise.",
+    "reference": "Sahih Al-Bukhari",
+    "timeOfDay": "anytime"
+  },
+  {
+    "id": 57,
+    "category": "gratitude",
+    "title": "Supplication to Keep Heart Firm in Gratitude",
+    "arabic": "اللَّهُمَّ أَعِنِّي عَلَى ذِكْرِكَ وَشُكْرِكَ وَحُسْنِ عِبَادَتِكَ",
+    "transliteration": "Allahumma a'innee 'ala dhikrika wa shukrika wa husni 'ibadatik",
+    "translation": "O Allah, help me to remember You, to thank You, and to worship You in an excellent manner.",
+    "reference": "Sunan Abi Dawud",
+    "timeOfDay": "anytime"
+  },
+  {
+    "id": 58,
+    "category": "gratitude",
+    "title": "Dua for Enduring Contentment",
+    "arabic": "الْحَمْدُ لِلَّهِ الَّذِي بِنِعْمَتِهِ تَتِمُّ الصَّالِحَاتُ",
+    "transliteration": "Alhamdu lillahil-ladhi bini'matihi tatimmus-salihat",
+    "translation": "Praise is to Allah by Whose favor good deeds are completed.",
+    "reference": "Sunan Ibn Majah",
+    "timeOfDay": "anytime"
+  },
+  {
+    "id": 59,
+    "category": "gratitude",
+    "title": "Dua of Appreciation for Health & Mercy",
+    "arabic": "الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ",
+    "transliteration": "Alhamdu lillahi Rabbil-'Alameen",
+    "translation": "All praise is due to Allah, Lord of the worlds.",
+    "reference": "Surah Al-Fatihah 1:2",
+    "timeOfDay": "anytime"
+  },
+  {
+    "id": 60,
+    "category": "gratitude",
+    "title": "Dua in Times of Happiness",
+    "arabic": "اللَّهُمَّ لَكَ الْحَمْدُ شُكْرًا وَلَكَ الْمَنُّ فَضْلاً",
+    "transliteration": "Allahumma lakal-hamdu shukran wa lakal-mannu fadlan",
+    "translation": "O Allah, all praise belongs to You in gratitude, and all favor is yours in generosity.",
+    "reference": "Musnad Ahmad",
+    "timeOfDay": "anytime"
+  }
+]

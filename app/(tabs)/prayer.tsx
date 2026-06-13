@@ -22,6 +22,7 @@ import Card from '../../components/ui/Card';
 import AppHeader from '../../components/AppHeader';
 import { router } from 'expo-router';
 import { useThemeContext } from '../../src/context/ThemeContext';
+import ScreenBackground from '../../components/ui/ScreenBackground';
 
 export default function PrayerTabScreen() {
   const { theme } = useThemeContext();
@@ -140,10 +141,17 @@ export default function PrayerTabScreen() {
     setQiblaModalVisible(true);
     setLoadingQibla(true);
     try {
-      const bearing = await getQiblaBearing(prayerStore.location.lat, prayerStore.location.lon);
-      setQiblaBearing(bearing);
+      const { calculateOfflineQibla } = require('../../src/services/prayerCalculations');
+      const offlineQibla = calculateOfflineQibla(prayerStore.location.lat, prayerStore.location.lon);
+      setQiblaBearing(offlineQibla.bearing);
+
+      getQiblaBearing(prayerStore.location.lat, prayerStore.location.lon).then((bearing) => {
+        if (bearing !== undefined && bearing !== null) {
+          setQiblaBearing(bearing);
+        }
+      }).catch(err => console.warn('Background fetch Qibla bearing failed:', err));
     } catch (e) {
-      console.warn('Failed to load Qibla direction:', e);
+      console.warn('Failed to load Qibla direction locally:', e);
       setQiblaBearing(21.42); // Default to Makkah orientation relative north
     } finally {
       setLoadingQibla(false);
@@ -172,12 +180,7 @@ export default function PrayerTabScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right']}>
-      <LinearGradient
-        colors={isDark ? ['#0C101B', '#06080E'] : ['#FFFFFF', '#FAF8F3']}
-        style={StyleSheet.absoluteFillObject}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      />
+      <ScreenBackground />
       {/* Brand App Header */}
       <AppHeader onSettingsPress={() => router.push('/settings')} />
 

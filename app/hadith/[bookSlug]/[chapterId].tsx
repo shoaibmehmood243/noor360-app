@@ -20,6 +20,7 @@ import GoldBadge from '../../../components/ui/GoldBadge';
 import ArabicText from '../../../components/ui/ArabicText';
 import SkeletonLoader from '../../../components/ui/SkeletonLoader';
 import EmptyState from '../../../components/ui/EmptyState';
+import ScreenBackground from '../../../components/ui/ScreenBackground';
 
 const COLLECTION_COLORS: Record<string, { bg: string; text: string; icon: string; name: string }> = {
   'sahih-bukhari': { bg: 'rgba(201, 168, 76, 0.12)', text: '#C9A84C', icon: 'book', name: 'Sahih Al-Bukhari' },
@@ -30,8 +31,18 @@ const COLLECTION_COLORS: Record<string, { bg: string; text: string; icon: string
   'sunan-an-nasai': { bg: 'rgba(245, 158, 11, 0.12)', text: '#F59E0B', icon: 'bookmark', name: "Sunan An-Nasa'i" },
 };
 
-const getThemeMeta = (bookKey: string) => {
-  const normalized = (bookKey || '').toLowerCase().replace(/_/g, '-');
+const getBookKey = (book: any): string => {
+  if (!book) return '';
+  if (typeof book === 'string') return book;
+  if (typeof book === 'object') {
+    return book.bookSlug || book.bookName || '';
+  }
+  return '';
+};
+
+const getThemeMeta = (bookKey: any) => {
+  const normalizedKey = getBookKey(bookKey);
+  const normalized = (normalizedKey || '').toLowerCase().replace(/_/g, '-');
   for (const [key, value] of Object.entries(COLLECTION_COLORS)) {
     if (normalized.includes(key) || key.includes(normalized)) {
       return value;
@@ -41,7 +52,7 @@ const getThemeMeta = (bookKey: string) => {
     bg: 'rgba(201, 168, 76, 0.12)',
     text: COLORS.gold,
     icon: 'book',
-    name: bookKey,
+    name: normalizedKey || 'Hadith Collection',
   };
 };
 
@@ -125,10 +136,11 @@ export default function ChapterHadithListScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right', 'top']}>
+      <ScreenBackground />
       {/* Custom Header */}
       <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton} 
+        <TouchableOpacity
+          style={styles.backButton}
           onPress={() => {
             if (router.canGoBack()) {
               router.back();
@@ -156,7 +168,8 @@ export default function ChapterHadithListScreen() {
           const isUrdu = language === 'ur';
           const narratorText = (isUrdu && item.urduNarrator) ? item.urduNarrator : item.englishNarrator;
           const translationText = (isUrdu && item.hadithUrdu) ? item.hadithUrdu : item.hadithEnglish;
-          const refId = `${item.book || item.bookName}:${item.hadithNumber}`;
+          const itemBookKey = getBookKey(item.book || item.bookName);
+          const refId = `${itemBookKey}:${item.hadithNumber}`;
           const isBookmarked = hadithStore.isBookmarked(refId);
 
           return (
@@ -170,7 +183,7 @@ export default function ChapterHadithListScreen() {
               </View>
 
               <ArabicText text={item.hadithArabic} size={18} style={styles.arabicScript} />
-              
+
               {narratorText ? (
                 <Text style={[styles.narratorText, isUrdu && styles.rtlText]}>
                   {narratorText}
@@ -323,7 +336,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   arabicScript: {
-    color: COLORS.gold2,
+    color: COLORS.gold,
     lineHeight: 34,
     textAlign: 'right',
     marginBottom: 12,

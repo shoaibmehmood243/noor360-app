@@ -11,6 +11,7 @@ import {
   Share,
   Dimensions,
   Image,
+  TextInput,
 } from 'react-native';
 
 const RECITER_IMAGES: Record<string, any> = {
@@ -22,11 +23,13 @@ const RECITER_IMAGES: Record<string, any> = {
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { usePreferencesStore, TextSize, PrayerMethod, AsrMethod, AIResponseLang } from '../../src/store/usePreferencesStore';
 import { useThemeContext } from '../../src/context/ThemeContext';
 import { COLORS } from '../../constants/theme';
-import client, { getOrCreateDeviceId, getBookmarks } from '../../src/api/client';
+import client, { getOrCreateDeviceId, getBookmarks, saveUserPreferences } from '../../src/api/client';
 import ArabicGeometricBg from '../../components/ui/ArabicGeometricBg';
+import ScreenBackground from '../../components/ui/ScreenBackground';
 import { getOfflineStorageSize, clearAllOfflineAudio } from '../../src/services/quranOfflineManager';
 const LANGUAGES = [
   { code: 'en', name: 'English', flag: '🇬🇧' },
@@ -78,6 +81,35 @@ export default function SettingsScreen() {
   const [updating, setUpdating] = useState(false);
 
   const [offlineAudioSize, setOfflineAudioSize] = useState<number>(0);
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const storedFirst = await AsyncStorage.getItem('user_first_name');
+        const storedLast = await AsyncStorage.getItem('user_last_name');
+        if (storedFirst) setFirstName(storedFirst);
+        if (storedLast) setLastName(storedLast);
+      } catch (e) {
+        console.warn('Failed to load profile details in settings:', e);
+      }
+    };
+    loadProfile();
+  }, []);
+
+  const handleSaveProfile = async () => {
+    try {
+      setUpdating(true);
+      await AsyncStorage.setItem('user_first_name', firstName.trim());
+      await AsyncStorage.setItem('user_last_name', lastName.trim());
+      Alert.alert('Saved', 'Profile details updated successfully.');
+    } catch (e) {
+      Alert.alert('Error', 'Failed to save profile settings.');
+    } finally {
+      setUpdating(false);
+    }
+  };
 
   const loadOfflineSize = async () => {
     try {
@@ -222,6 +254,39 @@ export default function SettingsScreen() {
     );
   };
 
+  // Restart first-time welcome onboarding walkthrough flow
+  const handleRestartOnboarding = () => {
+    Alert.alert(
+      'Restart Welcome Walkthrough?',
+      'This will reset your onboarding state and guide you through first-time settings. Your saved bookmarks will not be affected.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Restart',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setUpdating(true);
+              await AsyncStorage.removeItem('onboarding_complete');
+              Alert.alert('Reset Successful', 'You will be guided through the setup process now.', [
+                {
+                  text: 'OK',
+                  onPress: () => {
+                    router.replace('/onboarding');
+                  }
+                }
+              ]);
+            } catch (err: any) {
+              Alert.alert('Error', err.message || 'Unable to reset onboarding state.');
+            } finally {
+              setUpdating(false);
+            }
+          }
+        }
+      ]
+    );
+  };
+
   // Export User Data (Bookmarks + Chats) to a JSON structure for cross-device export
   const handleExportData = async () => {
     try {
@@ -270,6 +335,7 @@ export default function SettingsScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <ScreenBackground />
       <ArabicGeometricBg size={320} style={styles.bgGeometric} />
 
       {/* Sticky Header */}
@@ -286,13 +352,52 @@ export default function SettingsScreen() {
         >
           <Ionicons name="chevron-back" size={24} color={COLORS.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Noor Settings</Text>
+        <Text style={styles.headerTitle}>Noor360 Settings</Text>
         <View style={styles.headerPlaceholder}>
           {updating && <ActivityIndicator size="small" color={COLORS.gold} />}
         </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll}>
+
+        {/* PROFILE SECTION */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="person-outline" size={20} color={COLORS.gold} />
+            <Text style={styles.sectionTitle}>User Profile</Text>
+          </View>
+
+          <View style={styles.card}>
+            <Text style={styles.cardLabel}>Spiritual Journey Name</Text>
+            <View style={styles.nameFieldsRow}>
+              <View style={styles.inputCol}>
+                <Text style={styles.fieldLabel}>First Name</Text>
+                <TextInput
+                  style={styles.settingsInput}
+                  placeholder="First Name"
+                  placeholderTextColor={COLORS.text3}
+                  value={firstName}
+                  onChangeText={setFirstName}
+                />
+              </View>
+              <View style={styles.inputSpacer} />
+              <View style={styles.inputCol}>
+                <Text style={styles.fieldLabel}>Last Name</Text>
+                <TextInput
+                  style={styles.settingsInput}
+                  placeholder="Last Name"
+                  placeholderTextColor={COLORS.text3}
+                  value={lastName}
+                  onChangeText={setLastName}
+                />
+              </View>
+            </View>
+
+            <TouchableOpacity style={styles.saveProfileBtn} onPress={handleSaveProfile}>
+              <Text style={styles.saveProfileBtnText}>Save Profile Name</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
 
         {/* SECTION 1: APPEARANCE */}
         <View style={styles.section}>
@@ -681,6 +786,17 @@ export default function SettingsScreen() {
 
             <View style={styles.divider} />
 
+            {/* Restart Walkthrough */}
+            <TouchableOpacity style={styles.linkButton} onPress={handleRestartOnboarding}>
+              <View style={{ flex: 1, marginRight: 12 }}>
+                <Text style={styles.toggleLabel}>Restart App Walkthrough</Text>
+                <Text style={styles.subtext}>Launch first-time welcome setup to reset settings and language preferences</Text>
+              </View>
+              <Ionicons name="refresh-outline" size={18} color={COLORS.gold} />
+            </TouchableOpacity>
+
+            <View style={styles.divider} />
+
             {/* About metadata */}
             <View style={styles.aboutRow}>
               <Text style={styles.aboutLabel}>Noor360 Companion</Text>
@@ -724,7 +840,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(201, 168, 76, 0.1)',
-    backgroundColor: COLORS.bg,
+    backgroundColor: 'transparent',
   },
   backBtn: {
     width: 36,
@@ -1059,5 +1175,47 @@ const styles = StyleSheet.create({
     color: '#EF4444',
     fontSize: 12,
     fontWeight: 'bold',
+  },
+  nameFieldsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+    marginBottom: 12,
+  },
+  inputCol: {
+    flex: 1,
+  },
+  inputSpacer: {
+    width: 12,
+  },
+  fieldLabel: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: COLORS.text3,
+    marginBottom: 4,
+    textTransform: 'uppercase',
+  },
+  settingsInput: {
+    backgroundColor: COLORS.bg2,
+    borderWidth: 1,
+    borderColor: COLORS.bg3,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    color: COLORS.text,
+    fontSize: 13,
+  },
+  saveProfileBtn: {
+    backgroundColor: COLORS.gold,
+    borderRadius: 8,
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 4,
+  },
+  saveProfileBtnText: {
+    color: COLORS.bg,
+    fontWeight: 'bold',
+    fontSize: 13,
   },
 });

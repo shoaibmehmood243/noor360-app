@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants/theme';
 import { usePreferencesStore } from '../src/store/usePreferencesStore';
 import ArabicGeometricBg from '../components/ui/ArabicGeometricBg';
+import ScreenBackground from '../components/ui/ScreenBackground';
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -15,6 +16,7 @@ export default function SplashScreen() {
   // Animated values
   const logoOpacity = useRef(new Animated.Value(0)).current;
   const logoTranslateY = useRef(new Animated.Value(30)).current;
+  const logoScale = useRef(new Animated.Value(0.85)).current;
 
   const nameOpacity = useRef(new Animated.Value(0)).current;
   const nameTranslateY = useRef(new Animated.Value(20)).current;
@@ -22,24 +24,64 @@ export default function SplashScreen() {
   const taglineOpacity = useRef(new Animated.Value(0)).current;
   const spinValue = useRef(new Animated.Value(0)).current;
 
+  const glowScale = useRef(new Animated.Value(0.95)).current;
+  const glowOpacity = useRef(new Animated.Value(0.15)).current;
+
   // Initialization states
   const [status, setStatus] = useState('Starting up...');
   const [showWarning, setShowWarning] = useState(false);
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
 
   useEffect(() => {
-    // 1. Logo Animation (Fade in + Slide up)
-    Animated.timing(logoOpacity, {
-      toValue: 1,
-      duration: 800,
-      useNativeDriver: true,
-    }).start();
+    // 1. Logo Animation (Fade in + Slide up + Spring Scale)
+    Animated.parallel([
+      Animated.timing(logoOpacity, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.timing(logoTranslateY, {
+        toValue: 0,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.spring(logoScale, {
+        toValue: 1,
+        friction: 6,
+        tension: 40,
+        useNativeDriver: true,
+      })
+    ]).start();
 
-    Animated.timing(logoTranslateY, {
-      toValue: 0,
-      duration: 800,
-      useNativeDriver: true,
-    }).start();
+    // Breathing Glow Aura Animation (infinite loop)
+    Animated.loop(
+      Animated.parallel([
+        Animated.sequence([
+          Animated.timing(glowScale, {
+            toValue: 1.35,
+            duration: 2200,
+            useNativeDriver: true,
+          }),
+          Animated.timing(glowScale, {
+            toValue: 0.95,
+            duration: 2200,
+            useNativeDriver: true,
+          })
+        ]),
+        Animated.sequence([
+          Animated.timing(glowOpacity, {
+            toValue: 0.35,
+            duration: 2200,
+            useNativeDriver: true,
+          }),
+          Animated.timing(glowOpacity, {
+            toValue: 0.15,
+            duration: 2200,
+            useNativeDriver: true,
+          })
+        ])
+      ])
+    ).start();
 
     // 2. Name Animation (Staggered by 400ms)
     Animated.sequence([
@@ -93,6 +135,12 @@ export default function SplashScreen() {
   const checkOnboardingAndNavigate = async () => {
     try {
       setStatus('Loading local database...');
+      // Initialize offline SQLite tables and populate default assets
+      const { initializeDatabase } = require('../src/services/quranLocalDb');
+      await initializeDatabase().catch((e: any) => {
+        console.warn('Local SQLite initialization failed:', e);
+      });
+
       const prefs = usePreferencesStore.getState();
       await prefs.loadAllPreferences().catch((e) => {
         console.warn('Store preload failed (offline fallback active):', e);
@@ -119,6 +167,7 @@ export default function SplashScreen() {
   if (showWarning) {
     return (
       <View style={styles.container}>
+        <ScreenBackground />
         <ArabicGeometricBg size={SCREEN_HEIGHT * 0.75} style={styles.bgGeometric} />
         <View style={styles.errorCard}>
           <Ionicons name="alert-circle-outline" size={48} color={COLORS.gold} />
@@ -176,23 +225,41 @@ export default function SplashScreen() {
 
   return (
     <View style={styles.container}>
+      <ScreenBackground />
       {/* Dynamic Background Pattern */}
       <ArabicGeometricBg size={SCREEN_HEIGHT * 0.75} style={styles.bgGeometric} />
 
       {/* Main Content Area */}
       <View style={styles.content}>
-        {/* Animated Brand Logo */}
-        <Animated.View
-          style={[
-            styles.logoSquare,
-            {
-              opacity: logoOpacity,
-              transform: [{ translateY: logoTranslateY }],
-            },
-          ]}
-        >
-          <Text style={styles.logoText}>ن</Text>
-        </Animated.View>
+        {/* Logo and Aura Container */}
+        <View style={styles.logoContainer}>
+          {/* Pulsating Spiritual Light Aura */}
+          <Animated.View
+            style={[
+              styles.glowRing,
+              {
+                opacity: Animated.multiply(logoOpacity, glowOpacity),
+                transform: [{ scale: glowScale }],
+              }
+            ]}
+          />
+
+          {/* Animated Brand Logo */}
+          <Animated.View
+            style={[
+              styles.logoSquare,
+              {
+                opacity: logoOpacity,
+                transform: [
+                  { translateY: logoTranslateY },
+                  { scale: logoScale }
+                ],
+              },
+            ]}
+          >
+            <Text style={styles.logoText}>ن</Text>
+          </Animated.View>
+        </View>
 
         {/* Animated Brand Name */}
         <Animated.View
@@ -214,7 +281,7 @@ export default function SplashScreen() {
         </Animated.Text>
 
         {/* Rotating Loading Animation */}
-        <Animated.View 
+        <Animated.View
           style={[
             styles.spinnerWrapper,
             {
@@ -223,7 +290,7 @@ export default function SplashScreen() {
             }
           ]}
         >
-          <Ionicons name="sync-outline" size={24} color={COLORS.gold} />
+          <Ionicons name="aperture-outline" size={26} color={COLORS.gold} />
         </Animated.View>
 
         {/* Dynamic Status Text */}
@@ -238,7 +305,7 @@ export default function SplashScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A0E1A',
+    backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -247,6 +314,23 @@ const styles = StyleSheet.create({
   },
   content: {
     alignItems: 'center',
+  },
+  logoContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+    marginBottom: 24,
+  },
+  glowRing: {
+    position: 'absolute',
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: COLORS.gold,
+    shadowColor: COLORS.gold,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 20,
   },
   logoSquare: {
     width: 90,
@@ -260,7 +344,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: 16,
     elevation: 8,
-    marginBottom: 24,
   },
   logoText: {
     fontSize: 54,

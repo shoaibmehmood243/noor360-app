@@ -23,6 +23,7 @@ import * as Haptics from 'expo-haptics';
 import { COLORS } from '../../constants/theme';
 import Card from '../../components/ui/Card';
 import ArabicGeometricBg from '../../components/ui/ArabicGeometricBg';
+import ScreenBackground from '../../components/ui/ScreenBackground';
 import { useThemeContext } from '../../src/context/ThemeContext';
 import { getNamesOfAllah } from '../../src/api/client';
 
@@ -79,6 +80,27 @@ export default function NamesOfAllahScreen() {
   const fetchNames = async () => {
     try {
       setLoading(true);
+
+      // 1. Try displaying local SQLite names first (Offline-First)
+      const { getLocalNamesOfAllah } = require('../../src/services/quranLocalDb');
+      const localNames = await getLocalNamesOfAllah();
+      if (localNames && localNames.length > 0) {
+        setNames(localNames);
+        calculateNameOfDay(localNames);
+        setLoading(false);
+
+        // Silently fetch from API in the background to update/validate
+        getNamesOfAllah().then((data) => {
+          if (data) {
+            setNames(data);
+            calculateNameOfDay(data);
+          }
+        }).catch(err => console.warn('Background fetch names of Allah failed:', err));
+
+        return;
+      }
+
+      // 2. Fallback to API
       const data = await getNamesOfAllah();
       if (data) {
         setNames(data);
@@ -229,13 +251,14 @@ export default function NamesOfAllahScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right', 'top']}>
+      <ScreenBackground />
       {/* Background decoration */}
       <ArabicGeometricBg size={400} style={styles.backgroundOverlay} />
 
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton} 
+        <TouchableOpacity
+          style={styles.backButton}
           onPress={() => {
             if (router.canGoBack()) {
               router.back();
@@ -766,7 +789,7 @@ const styles = StyleSheet.create({
     height: 120,
     justifyContent: 'space-between',
     borderWidth: 0.5,
-    borderColor: 'rgba(255,255,255,0.02)',
+    borderColor: 'rgba(201,168,76,0.18)',
   },
   cardHeaderRow: {
     flexDirection: 'row',
@@ -785,7 +808,7 @@ const styles = StyleSheet.create({
   cardArabic: {
     fontSize: 20,
     fontFamily: 'Amiri_400Regular',
-    color: COLORS.gold2,
+    color: COLORS.gold,
     textAlign: 'right',
   },
   cardTranslit: {
