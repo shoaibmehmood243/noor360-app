@@ -291,18 +291,26 @@ export default function QiblaCompassScreen() {
 
           {/* Compass Angle Display Info */}
           <View style={styles.degreeBox}>
-            <Text style={styles.degreeText}>
-              {Math.round(qiblaAngleVal)}° {makkahBearingLabel}
-            </Text>
+            <View style={styles.headingIndicatorRow}>
+              <View style={styles.headingBadge}>
+                <Text style={styles.headingBadgeLabel}>HEADING</Text>
+                <Text style={styles.headingBadgeVal}>{Math.round(deviceHeading)}° {currentHeadingLabel}</Text>
+              </View>
+              <View style={styles.headingBadge}>
+                <Text style={styles.headingBadgeLabel}>QIBLA</Text>
+                <Text style={[styles.headingBadgeVal, { color: COLORS.gold }]}>{Math.round(qiblaAngleVal)}° {makkahBearingLabel}</Text>
+              </View>
+            </View>
+            
             <Text style={[styles.alignmentStatusLabel, isAligned && styles.alignedTextHighlight]}>
-              {isAligned ? 'FACING MAKKAH AL-MUKARRAMAH' : 'ALIGN DEVICE POINTER'}
+              {isAligned ? '✨ LOCKED ON KAABA ✨' : 'ROTATE DEVICE TO ALIGN'}
             </Text>
           </View>
 
           {/* Compass Visualiser Platform */}
           <View style={styles.compassPlatform}>
 
-            {/* Green pulsing circular halo glow */}
+            {/* Pulsing circular halo glow */}
             {isAligned && (
               <Animated.View
                 style={[
@@ -324,6 +332,7 @@ export default function QiblaCompassScreen() {
               <Svg width={280} height={280} viewBox="0 0 100 100">
                 <Circle cx="50" cy="50" r="48" stroke={COLORS.bg3} strokeWidth="1" fill="none" />
                 <Circle cx="50" cy="50" r="45" stroke={COLORS.gold} strokeWidth="0.5" fill="none" />
+                <Circle cx="50" cy="50" r="42" stroke="rgba(201, 168, 76, 0.15)" strokeWidth="1" fill="none" />
 
                 {/* 360 Degree Dial ticks */}
                 {Array.from({ length: 24 }).map((_, i) => {
@@ -343,7 +352,7 @@ export default function QiblaCompassScreen() {
                 })}
 
                 {/* Cardinal Points */}
-                <SvgText x="47.5" y="15" fill={COLORS.gold} fontSize="9" fontWeight="bold">N</SvgText>
+                <SvgText x="47" y="15" fill={COLORS.gold} fontSize="9" fontWeight="bold">N</SvgText>
                 <SvgText x="48" y="92" fill={COLORS.text2} fontSize="7" fontWeight="bold">S</SvgText>
                 <SvgText x="85" y="52.5" fill={COLORS.text2} fontSize="7" fontWeight="bold">E</SvgText>
                 <SvgText x="9" y="52.5" fill={COLORS.text2} fontSize="7" fontWeight="bold">W</SvgText>
@@ -361,17 +370,17 @@ export default function QiblaCompassScreen() {
               <Svg width={300} height={300} viewBox="0 0 100 100">
                 {/* Elegant Kaaba Shape Pointer pointer arrow */}
                 <Polygon
-                  points="50,14 42,28 50,24 58,28"
-                  fill={isAligned ? COLORS.gold2 : COLORS.gold}
+                  points="50,11 40,26 50,22 60,26"
+                  fill={isAligned ? COLORS.teal : COLORS.gold}
                 />
 
                 {/* Visual Connector Line */}
                 <Line
                   x1="50"
-                  y1="24"
+                  y1="22"
                   x2="50"
                   y2="50"
-                  stroke={isAligned ? COLORS.gold2 : COLORS.gold}
+                  stroke={isAligned ? COLORS.teal : COLORS.gold}
                   strokeWidth="1.5"
                 />
 
@@ -379,13 +388,13 @@ export default function QiblaCompassScreen() {
                 <G transform="translate(43, 43)">
                   <Path
                     d="M2 1h10v10H2zm0 3.5h10M2 7h10"
-                    stroke={isAligned ? COLORS.gold2 : COLORS.gold}
+                    stroke={isAligned ? COLORS.teal : COLORS.gold}
                     strokeWidth="1"
                     fill="none"
                   />
                   <Path
                     d="M2 1l2 2v6l-2-2zm10 0l-2 2v6l2-2z"
-                    stroke={isAligned ? COLORS.gold2 : COLORS.gold}
+                    stroke={isAligned ? COLORS.teal : COLORS.gold}
                     strokeWidth="0.8"
                     fill="none"
                   />
@@ -396,16 +405,27 @@ export default function QiblaCompassScreen() {
 
           {/* Location details card info */}
           <Card style={styles.locationInfoCard}>
-            <View style={styles.locationTextRow}>
-              <View>
-                <Text style={styles.locationTitleLabel}>Current Coordinates</Text>
-                <Text style={styles.locationCityValue}>
-                  {city || 'Custom Location'}
+            <View style={styles.locationHeaderRow}>
+              <Ionicons name="location-sharp" size={18} color={COLORS.gold} />
+              <Text style={styles.locationCityValue}>
+                {city || 'Custom Location'}
+              </Text>
+            </View>
+            
+            <View style={styles.divider} />
+
+            <View style={styles.coordinatesGrid}>
+              <View style={styles.coordCapsule}>
+                <Text style={styles.coordCapsuleLabel}>LATITUDE</Text>
+                <Text style={styles.coordCapsuleVal}>
+                  {Math.abs(lat).toFixed(4)}° {lat >= 0 ? 'N' : 'S'}
                 </Text>
               </View>
-              <View style={styles.coordsValueBox}>
-                <Text style={styles.coordLabel}>Lat: {lat.toFixed(4)}°</Text>
-                <Text style={styles.coordLabel}>Lon: {lon.toFixed(4)}°</Text>
+              <View style={styles.coordCapsule}>
+                <Text style={styles.coordCapsuleLabel}>LONGITUDE</Text>
+                <Text style={styles.coordCapsuleVal}>
+                  {Math.abs(lon).toFixed(4)}° {lon >= 0 ? 'E' : 'W'}
+                </Text>
               </View>
             </View>
           </Card>
@@ -504,6 +524,36 @@ const styles = StyleSheet.create({
   },
   degreeBox: {
     alignItems: 'center',
+    width: '100%',
+  },
+  headingIndicatorRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    maxWidth: 280,
+    marginBottom: 8,
+  },
+  headingBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    flex: 0.47,
+  },
+  headingBadgeLabel: {
+    fontSize: 9,
+    fontWeight: 'bold',
+    color: COLORS.text3,
+    letterSpacing: 1,
+    marginBottom: 2,
+  },
+  headingBadgeVal: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: COLORS.text,
   },
   degreeText: {
     fontSize: 38,
@@ -511,7 +561,7 @@ const styles = StyleSheet.create({
     color: COLORS.text,
   },
   alignmentStatusLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: 'bold',
     color: COLORS.text3,
     letterSpacing: 1.5,
@@ -519,7 +569,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   alignedTextHighlight: {
-    color: COLORS.gold2,
+    color: COLORS.teal,
   },
   compassPlatform: {
     width: 290,
@@ -533,9 +583,9 @@ const styles = StyleSheet.create({
     width: 270,
     height: 270,
     borderRadius: 135,
-    backgroundColor: 'rgba(201,168,76,0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(201,168,76,0.22)',
+    backgroundColor: 'rgba(45, 212, 191, 0.06)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(45, 212, 191, 0.22)',
   },
   compassRoseWrapper: {
     position: 'absolute',
@@ -558,36 +608,52 @@ const styles = StyleSheet.create({
   },
   locationInfoCard: {
     width: '100%',
-    backgroundColor: COLORS.bg2,
-    borderColor: 'rgba(255,255,255,0.03)',
-    borderWidth: 1,
-    borderRadius: 16,
-    padding: 16,
+    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+    borderColor: 'rgba(201, 168, 76, 0.25)',
+    borderWidth: 1.5,
+    borderRadius: 20,
+    padding: 18,
   },
-  locationTextRow: {
+  locationHeaderRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-  },
-  locationTitleLabel: {
-    fontSize: 11,
-    color: COLORS.text3,
-    fontWeight: 'bold',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
+    marginBottom: 12,
   },
   locationCityValue: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: COLORS.text,
-    marginTop: 2,
+    marginLeft: 8,
   },
-  coordsValueBox: {
-    alignItems: 'flex-end',
+  divider: {
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    marginBottom: 14,
   },
-  coordLabel: {
-    fontSize: 12,
-    color: COLORS.text2,
-    fontWeight: '500',
+  coordinatesGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  coordCapsule: {
+    flex: 0.48,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+  },
+  coordCapsuleLabel: {
+    fontSize: 9,
+    fontWeight: 'bold',
+    color: COLORS.text3,
+    letterSpacing: 1.2,
+    marginBottom: 4,
+  },
+  coordCapsuleVal: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: COLORS.gold,
   },
 });

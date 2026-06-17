@@ -23,6 +23,7 @@ import { useRouter } from 'expo-router';
 import Svg, { Path } from 'react-native-svg';
 
 import { usePrayer } from '../../src/hooks/usePrayer';
+import { usePrayerStore } from '../../src/store/prayerStore';
 import { useTrackerStore, DayRecord, PrayerStatus } from '../../src/store/trackerStore';
 import { useQuranStore } from '../../src/store/quranStore';
 import { usePreferencesStore } from '../../src/store/usePreferencesStore';
@@ -347,7 +348,8 @@ export default function HomeScreen() {
       const { latitude, longitude } = pos.coords;
       await prayerStore.fetchPrayerTimes(latitude, longitude);
       setLocationModalVisible(false);
-      Alert.alert('Success', `Location updated: ${prayerStore.location.city || 'Detected Location'}`);
+      const updatedLoc = usePrayerStore.getState().location;
+      Alert.alert('Success', `Location updated: ${updatedLoc.city || 'Detected Location'}`);
     } catch (e: any) {
       Alert.alert('Error', e.message || 'Could not detect current location.');
     } finally {
@@ -364,7 +366,8 @@ export default function HomeScreen() {
       setDetectingLocation(true);
       await prayerStore.fetchByCity(manualCity.trim(), manualCountry.trim());
       setLocationModalVisible(false);
-      Alert.alert('Success', `Location set to ${manualCity.trim()}`);
+      const updatedLoc = usePrayerStore.getState().location;
+      Alert.alert('Success', `Location set to ${updatedLoc.city || manualCity.trim()}`);
     } catch (e: any) {
       Alert.alert('Error', e.message || 'Could not find prayer times for entered city.');
     } finally {

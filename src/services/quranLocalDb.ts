@@ -122,8 +122,10 @@ export const initializeDatabase = async (): Promise<void> => {
         hadithNumber TEXT NOT NULL,
         hadithArabic TEXT NOT NULL,
         hadithEnglish TEXT NOT NULL,
+        hadithUrdu TEXT,
         englishNarrator TEXT NOT NULL,
         arabicNarrator TEXT NOT NULL,
+        urduNarrator TEXT,
         FOREIGN KEY (bookSlug) REFERENCES hadith_books(bookSlug)
       );
 
@@ -132,6 +134,14 @@ export const initializeDatabase = async (): Promise<void> => {
       CREATE INDEX IF NOT EXISTS idx_duas_cat ON duas(category);
       CREATE INDEX IF NOT EXISTS idx_hadiths_book_chap ON hadiths(bookSlug, chapterNumber);
     `);
+
+    // Migration helper: dynamically add new columns to hadiths table if they don't exist
+    try {
+      await db.execAsync('ALTER TABLE hadiths ADD COLUMN hadithUrdu TEXT;');
+    } catch (_) {}
+    try {
+      await db.execAsync('ALTER TABLE hadiths ADD COLUMN urduNarrator TEXT;');
+    } catch (_) {}
 
     // 2. Check if already seeded (insists on the entire Quran's 6236 verses)
     const surahCountRes = await db.getFirstAsync<{ count: number }>('SELECT COUNT(*) as count FROM surahs');
@@ -518,12 +528,14 @@ export const cacheLocalHadiths = async (bookSlug: string, hadiths: any[]): Promi
         const chNo = String(h.chapterNo || h.chapterNumber || '0');
         const hArabic = h.hadithArabic || h.arabic || h.text || '';
         const hEnglish = h.hadithEnglish || h.english || h.translation || '';
+        const hUrdu = h.hadithUrdu || h.urdu || h.translationUrdu || '';
         const engNarrator = h.englishNarrator || h.narrator || '';
         const araNarrator = h.arabicNarrator || '';
+        const urdNarrator = h.urduNarrator || '';
         await db.runAsync(
-          `INSERT OR REPLACE INTO hadiths (id, bookSlug, chapterNumber, hadithNumber, hadithArabic, hadithEnglish, englishNarrator, arabicNarrator)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-          [id, bookSlug, chNo, hNo, hArabic, hEnglish, engNarrator, araNarrator]
+          `INSERT OR REPLACE INTO hadiths (id, bookSlug, chapterNumber, hadithNumber, hadithArabic, hadithEnglish, hadithUrdu, englishNarrator, arabicNarrator, urduNarrator)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [id, bookSlug, chNo, hNo, hArabic, hEnglish, hUrdu, engNarrator, araNarrator, urdNarrator]
         );
       }
     });

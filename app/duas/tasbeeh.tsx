@@ -318,12 +318,15 @@ export default function TasbeehScreen() {
           setDhikrIndex(2);
           setActiveDhikr(DEFAULT_DHIKRS[2]);
           setCount(0);
-        } else {
+        } else if (dhikrIndex === 2) {
           // Finished the 100 cycle! Reset to SubhanAllah
           setDhikrIndex(0);
           setActiveDhikr(DEFAULT_DHIKRS[0]);
           setCount(0);
           Alert.alert('Tasbeeh Complete', 'May Allah reward you for completing the 100 Dhikr cycle!');
+        } else {
+          // Astaghfirullah, La ilaha illallah, and custom Dhikrs reset to 0 to repeat
+          setCount(0);
         }
       } else {
         // Simple Reset
@@ -400,6 +403,39 @@ export default function TasbeehScreen() {
     setCustomInputVisible(false);
     setCustomTargetInput('');
     setCount(0);
+  };
+
+  const handleDeleteCustomDhikr = async (customIndex: number) => {
+    Alert.alert(
+      'Delete Custom Dhikr',
+      'Are you sure you want to delete this custom Dhikr?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            const updated = [...customDhikrs];
+            updated.splice(customIndex, 1);
+            setCustomDhikrs(updated);
+            await AsyncStorage.setItem('tasbeeh_custom_dhikrs', JSON.stringify(updated));
+            
+            const deletedItemName = customDhikrs[customIndex].name;
+            if (activeDhikr.name === deletedItemName) {
+              setActiveDhikr(DEFAULT_DHIKRS[0]);
+              setDhikrIndex(0);
+              setCount(0);
+            } else {
+              const newAllDhikrs = [...DEFAULT_DHIKRS, ...updated];
+              const newIndex = newAllDhikrs.findIndex(d => d.name === activeDhikr.name);
+              if (newIndex !== -1) {
+                setDhikrIndex(newIndex);
+              }
+            }
+          }
+        }
+      ]
+    );
   };
 
   // SVG parameters
@@ -536,15 +572,35 @@ export default function TasbeehScreen() {
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.dhikrScroll}>
           {allAvailableDhikrs.map((item, idx) => {
             const active = activeDhikr.name === item.name;
+            const isCustom = idx >= DEFAULT_DHIKRS.length;
             return (
               <TouchableOpacity
                 key={`${item.name}_${idx}`}
-                style={[styles.dhikrPill, active && { backgroundColor: beadTheme.primary, borderColor: beadTheme.primary }]}
+                style={[
+                  styles.dhikrPill,
+                  active && { backgroundColor: beadTheme.primary, borderColor: beadTheme.primary },
+                  isCustom && { flexDirection: 'row', alignItems: 'center', paddingRight: 8 }
+                ]}
                 onPress={() => handleSelectDhikr(item, idx)}
               >
                 <Text style={[styles.dhikrPillText, active && styles.dhikrPillTextActive]}>
                   {item.name}
                 </Text>
+                {isCustom && (
+                  <TouchableOpacity
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      handleDeleteCustomDhikr(idx - DEFAULT_DHIKRS.length);
+                    }}
+                    style={{ marginLeft: 6 }}
+                  >
+                    <Ionicons
+                      name="close-circle"
+                      size={14}
+                      color={active ? '#FFFFFF' : COLORS.text3}
+                    />
+                  </TouchableOpacity>
+                )}
               </TouchableOpacity>
             );
           })}

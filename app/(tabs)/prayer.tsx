@@ -14,8 +14,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Svg, { Circle, Text as SvgText, Line } from 'react-native-svg';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Location from 'expo-location';
 
 import { usePrayer } from '../../src/hooks/usePrayer';
+import { usePrayerStore } from '../../src/store/prayerStore';
 import { getQiblaBearing } from '../../src/api/client';
 import { COLORS } from '../../constants/theme';
 import Card from '../../components/ui/Card';
@@ -43,6 +45,7 @@ export default function PrayerTabScreen() {
   const [searchCountry, setSearchCountry] = useState('');
   const [qiblaBearing, setQiblaBearing] = useState<number | null>(null);
   const [loadingQibla, setLoadingQibla] = useState(false);
+  const [detectingLocation, setDetectingLocation] = useState(false);
 
   // Settings State
   const [adhanNotifications, setAdhanNotifications] = useState(true);
@@ -123,17 +126,43 @@ export default function PrayerTabScreen() {
   };
 
   const handleCitySearch = async () => {
-    if (!searchCity.trim() || !searchCountry.trim()) {
-      Alert.alert('Incomplete Fields', 'Please specify both City and Country names.');
+    if (!searchCity.trim()) {
+      Alert.alert('Error', 'Please enter a city name.');
       return;
     }
     try {
-      await prayerStore.fetchByCity(searchCity, searchCountry);
+      setDetectingLocation(true);
+      await prayerStore.fetchByCity(searchCity.trim(), searchCountry.trim());
       setCityModalVisible(false);
       setSearchCity('');
       setSearchCountry('');
+      const updatedLoc = usePrayerStore.getState().location;
+      Alert.alert('Success', `Location set to ${updatedLoc.city || searchCity.trim()}`);
     } catch (e: any) {
-      Alert.alert('Retrieval Failure', e.message || 'Unable to locate prayer timings.');
+      Alert.alert('Error', e.message || 'Could not find prayer times for entered city.');
+    } finally {
+      setDetectingLocation(false);
+    }
+  };
+
+  const handleAutoDetectLocation = async () => {
+    try {
+      setDetectingLocation(true);
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Please grant location permissions in device settings.');
+        return;
+      }
+      const pos = await Location.getCurrentPositionAsync({});
+      const { latitude, longitude } = pos.coords;
+      await prayerStore.fetchPrayerTimes(latitude, longitude);
+      setCityModalVisible(false);
+      const updatedLoc = usePrayerStore.getState().location;
+      Alert.alert('Success', `Location updated: ${updatedLoc.city || 'Detected Location'}`);
+    } catch (e: any) {
+      Alert.alert('Error', e.message || 'Could not detect current location.');
+    } finally {
+      setDetectingLocation(false);
     }
   };
 
@@ -360,36 +389,68 @@ export default function PrayerTabScreen() {
         onRequestClose={() => setCityModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <Card style={styles.modalContent}>
+          <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitleText}>Search Location</Text>
+              <Text style={styles.modalTitle}>Select Location</Text>
               <TouchableOpacity onPress={() => setCityModalVisible(false)}>
-                <Ionicons name="close" size={24} color={COLORS.text3} />
+                <Ionicons name="close" size={24} color={COLORS.text} />
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.inputLabel}>City Name</Text>
-            <TextInput
-              style={styles.textInput}
-              placeholder="e.g. Lahore, London, New York"
-              placeholderTextColor={COLORS.text3}
-              value={searchCity}
-              onChangeText={setSearchCity}
-            />
+            <Text style={styles.modalSubtitle}>
+              Update location coordinates to get accurate prayer times.
+            </Text>
 
-            <Text style={styles.inputLabel}>Country Name</Text>
-            <TextInput
-              style={styles.textInput}
-              placeholder="e.g. Pakistan, UK, USA"
-              placeholderTextColor={COLORS.text3}
-              value={searchCountry}
-              onChangeText={setSearchCountry}
-            />
+            {detectingLocation ? (
+              <View style={styles.loaderContainer}>
+                <ActivityIndicator size="large" color={COLORS.gold} />
+                <Text style={styles.modalLoaderText}>Updating prayer timetable...</Text>
+              </View>
+            ) : (
+              <View>
+                {/* Auto GPS Option */}
+                <TouchableOpacity
+                  style={styles.gpsBtn}
+                  onPress={handleAutoDetectLocation}
+                >
+                  <Ionicons name="navigate-outline" size={20} color={COLORS.bg} />
+                  <Text style={styles.gpsBtnText}>Use Current GPS Location</Text>
+                </TouchableOpacity>
 
-            <TouchableOpacity style={styles.modalActionBtn} onPress={handleCitySearch}>
-              <Text style={styles.modalActionBtnText}>Find Times</Text>
-            </TouchableOpacity>
-          </Card>
+                <View style={styles.modalOrRow}>
+                  <View style={styles.modalOrLine} />
+                  <Text style={styles.modalOrText}>OR</Text>
+                  <View style={styles.modalOrLine} />
+                </View>
+
+                {/* Manual Inputs */}
+                <Text style={styles.inputLabel}>City Name</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="e.g. Lahore, London, New York"
+                  placeholderTextColor={COLORS.text3}
+                  value={searchCity}
+                  onChangeText={setSearchCity}
+                />
+
+                <Text style={[styles.inputLabel, { marginTop: 12 }]}>Country Name</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="e.g. Pakistan, UK, USA"
+                  placeholderTextColor={COLORS.text3}
+                  value={searchCountry}
+                  onChangeText={setSearchCountry}
+                />
+
+                <TouchableOpacity
+                  style={styles.saveBtn}
+                  onPress={handleCitySearch}
+                >
+                  <Text style={styles.saveBtnText}>Save Location</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
         </View>
       </Modal>
 
@@ -805,49 +866,114 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.65)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
   },
   modalContent: {
+    backgroundColor: '#0F172A',
+    borderRadius: 24,
+    padding: 24,
     width: '100%',
-    backgroundColor: COLORS.bg2,
-    borderRadius: 20,
+    maxWidth: 360,
     borderWidth: 1,
-    borderColor: COLORS.bg3,
-    padding: 20,
+    borderColor: 'rgba(201, 168, 76, 0.2)',
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.04)',
-    paddingBottom: 14,
-    marginBottom: 16,
+    marginBottom: 12,
   },
   modalTitleText: {
     fontSize: 17,
     fontWeight: 'bold',
     color: COLORS.text,
   },
-  inputLabel: {
-    fontSize: 12,
+  modalTitle: {
+    fontSize: 18,
     fontWeight: 'bold',
-    color: COLORS.gold,
-    marginBottom: 6,
-    marginTop: 10,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    color: COLORS.text,
   },
-  textInput: {
-    backgroundColor: COLORS.bg3,
-    borderRadius: 10,
-    padding: 12,
+  modalSubtitle: {
+    fontSize: 13,
+    color: COLORS.text2,
+    lineHeight: 18,
+    marginBottom: 20,
+  },
+  gpsBtn: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.gold,
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  gpsBtnText: {
+    color: '#0A0E1A',
+    fontWeight: 'bold',
+    fontSize: 14,
+    marginLeft: 8,
+  },
+  modalOrRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalOrLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  modalOrText: {
+    color: COLORS.text3,
+    fontSize: 11,
+    fontWeight: 'bold',
+    marginHorizontal: 12,
+  },
+  inputLabel: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: COLORS.text2,
+    marginBottom: 6,
+    textTransform: 'uppercase',
+  },
+  modalInput: {
+    backgroundColor: '#1E293B',
+    borderWidth: 1,
+    borderColor: '#334155',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     color: COLORS.text,
     fontSize: 14,
-    marginBottom: 12,
+  },
+  saveBtn: {
+    backgroundColor: 'rgba(201, 168, 76, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(201, 168, 76, 0.3)',
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 20,
+  },
+  saveBtnText: {
+    color: COLORS.gold,
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  loaderContainer: {
+    alignItems: 'center',
+    paddingVertical: 30,
+  },
+  modalLoaderText: {
+    color: COLORS.text2,
+    fontSize: 13,
+    marginTop: 12,
+    fontWeight: 'bold',
   },
   modalActionBtn: {
     backgroundColor: COLORS.teal,

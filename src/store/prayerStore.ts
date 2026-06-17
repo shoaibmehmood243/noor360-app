@@ -161,8 +161,9 @@ export const usePrayerStore = create<PrayerState>((set, get) => ({
       }).catch(err => console.warn('Background fetch prayer times failed:', err));
 
       // Reverse-geocode latitude/longitude to resolve actual city and country
-      let city = get().location.city || 'Makkah Al-Mukarramah';
-      let country = get().location.country || 'Saudi Arabia';
+      const isClose = Math.abs(get().location.lat - lat) < 0.01 && Math.abs(get().location.lon - lon) < 0.01;
+      let city = isClose ? (get().location.city || 'Detected Location') : 'Detected Location';
+      let country = isClose ? (get().location.country || '') : '';
       try {
         const { status } = await ExpoLocation.getForegroundPermissionsAsync();
         if (status === 'granted') {

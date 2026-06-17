@@ -7,7 +7,7 @@ export const usePrayer = () => {
   useEffect(() => {
     if (!store.prayerTimes) {
       store.loadSavedLocation().then(() => {
-        const loc = store.location;
+        const loc = usePrayerStore.getState().location;
         store.fetchPrayerTimes(loc.lat, loc.lon);
       });
     }
